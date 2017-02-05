@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <float.h>
 #include "chromosome.h"
+#include "population.h"
 #include "common_functions.h"
 
 int DEBUG_ACTIVE = 0;
@@ -14,8 +15,11 @@ void init_args(int argc, char ** av);
 int main(int ac, char **av) {
 
     uint64_t n_alleles = 100;
+    Position p = Position();
 
-    Chromo_rucksack<uint64_t *> * ind = new Chromo_rucksack<uint64_t *>(n_alleles);
+    Chromo_rucksack<double> * ind = new Chromo_rucksack<double>(n_alleles, p);
+    ind->set_allele(0, 0.6669);
+    printf("%e at 0\n", *ind->get_allele(0));
     printf("%Le <- \n", *ind->get_fitness());
 
 

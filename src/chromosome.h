@@ -19,14 +19,17 @@ protected:
     T * chromosome;
     uint64_t length;
     long double fitness;
+    Position position;
 
 public:
     T * get_chromosome(){ return this->chromosome; }
     long double * get_fitness(){ return &this->fitness; }
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness() = 0;
-    void set_allele(uint64_t index, T * value); //Makes a hard copy of value
+    void set_allele(uint64_t index, T value); 
     T * get_allele(uint64_t index); //Returns pointer to be modified
+    Position * get_position(){ return &this->position;}
+    void set_position(Position pos){ this->position = pos;}
     ~Chromosome();
 };
 
@@ -34,7 +37,7 @@ public:
 template <class T>
 class Chromo_rucksack : public Chromosome<T> {
 public:
-    Chromo_rucksack(uint64_t alleles);
+    Chromo_rucksack(uint64_t alleles, Position p);
     void compute_fitness();
 };
 

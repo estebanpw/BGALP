@@ -10,6 +10,9 @@ struct Unit{
     struct Unit * next;
 };
 
-struct Problem{
-    int x;
+struct Position{
+    uint64_t x;
+    uint64_t y;
+    uint64_t z;
+    Position(uint64_t x = 0, uint64_t y = 0, uint64_t z = 0): x(x), y(y), z(z) {}
 };

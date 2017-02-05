@@ -2,9 +2,9 @@
 
 
 template <class T>
-void Chromosome<T>::set_allele(uint64_t index, T * value){
+void Chromosome<T>::set_allele(uint64_t index, T value){
     if(index < this->length){
-        memcpy(&this->chromosome[index], value, sizeof(T));
+        this->chromosome[index] = value;
     }else{
         throw "Index out of bounds";
     }
@@ -17,14 +17,15 @@ T * Chromosome<T>::get_allele(uint64_t index){
 
 template <class T>
 Chromosome<T>::~Chromosome(){
-    std::free(this->chromosome);
+    if(this->chromosome != NULL) std::free(this->chromosome);
 }
 
 template <class T>
-Chromo_rucksack<T>::Chromo_rucksack(uint64_t alleles){
+Chromo_rucksack<T>::Chromo_rucksack(uint64_t alleles, Position p){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
     this->length = alleles;
     this->fitness = 0;
+    this->position = p;
 }
 
 
@@ -33,7 +34,7 @@ void Chromo_rucksack<T>::compute_fitness(){
 
 }
 
-template class Chromosome<double *>;
-template class Chromosome<uint64_t *>;
-template class Chromo_rucksack<double *>;
-template class Chromo_rucksack<uint64_t *>;
+
+
+template class Chromosome<double>;
+template class Chromo_rucksack<double>;
