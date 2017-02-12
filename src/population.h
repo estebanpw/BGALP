@@ -18,13 +18,26 @@ class Population{
 protected:
     Chromosome<T> * individuals;
     uint64_t n_individuals;
+    bool (*distance_function)(Position * p1, Position * p2);
+
+    uint64_t index_worst;
+    uint64_t index_best;
 
 
 public:
-    Population(uint64_t n_individuals);
+    Population(uint64_t n_individuals, Chromosome<T> * individuals);
     void set_panmictic();
+    uint64_t get_size(){ return this->n_individuals; }
+    void set_individual_position(uint64_t ith, Position p);
+    void set_neighborhood_function(bool (*dst)(Position * p1, Position * p2));
+    bool is_in_neighborhood(uint64_t i1, uint64_t i2);
+    Chromosome<T> * get_individual_at(uint64_t index){ return &this->individuals[index]; }
+    void set_best(uint64_t index){ this->index_best = index; }
+    uint64_t get_best(){ return this->index_best; }
+    void set_worst(uint64_t index){ this->index_worst = index; }
+    uint64_t get_worst(){ return this->index_worst; }
     ~Population();
-    
+
 };
 
 

@@ -3,24 +3,62 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <random>
+#include <iostream>
 #include <float.h>
+#include "manager.h"
 #include "chromosome.h"
+#include "distance_functions.h"
 #include "population.h"
 #include "common_functions.h"
 
+#define THE_MAX 1000
+
 int DEBUG_ACTIVE = 0;
+
+
+/*
+    TODO
+    replace all random generators by interval [0,1] and just multiply by lenghts
+*/
+
 
 void init_args(int argc, char ** av);
 
 int main(int ac, char **av) {
 
+    // Size of individuals and number of alleles per individual
+    uint64_t n_individuals = 100;
     uint64_t n_alleles = 100;
+    // A generic position (0,0,0) for the chromosomes
     Position p = Position();
 
-    Chromo_rucksack<double> * ind = new Chromo_rucksack<double>(n_alleles, p);
-    ind->set_allele(0, 0.6669);
-    printf("%e at 0\n", *ind->get_allele(0));
-    printf("%Le <- \n", *ind->get_fitness());
+    // Solution to the problem
+    Sol_subsetsum sss;
+    sss.values = (int64_t *) std::malloc(n_alleles * sizeof(int64_t));
+    if(sss.values == NULL) throw "Could not allocate solution";
+    sss.c = 0;
+    std::default_random_engine uniform_generator;
+    std::uniform_int_distribution<uint64_t> u_d (0, THE_MAX);
+    for(uint64_t i=0;i<n_alleles;i++){
+        sss.values[i] = u_d(uniform_generator);
+        if(sss.values[i] % 2 == 0) sss.c += sss.values[i];
+    }
+
+    //Allocate chromosomes
+    Chromo_subsetsum<unsigned char> * ind = (Chromo_subsetsum<unsigned char> *) std::malloc(n_individuals*sizeof(Chromo_subsetsum<unsigned char>));
+    if(ind == NULL) throw "Could not allocate individuals";
+
+    for(uint64_t i=0;i<n_individuals;i++){
+        new (&ind[i]) Chromo_subsetsum<unsigned char>(n_alleles, p);
+    }
+    
+    //Assign chromosomes to population
+    Population<unsigned char> * population = new Population<unsigned char>(n_individuals, ind);
+    population->set_neighborhood_function(&all_together);
+    
+    //Add manager
+    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) sss, false);
 
 
     return 0;
