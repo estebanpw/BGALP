@@ -11,7 +11,7 @@ void Chromosome<T>::set_allele(uint64_t index, T * value){
 
 template <class T>
 T * Chromosome<T>::get_allele(uint64_t index){
-    if(index < this->length) return &this->chromosome[index]; else throw "Index out of bounds";
+    return &this->chromosome[index];
 }
 
 template <class T>

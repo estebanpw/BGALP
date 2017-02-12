@@ -28,7 +28,7 @@ public:
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness(void * solution_info) = 0;
     void set_allele(uint64_t index, T * value); 
-    T * get_allele(uint64_t index); //Returns pointer to be modified
+    T * get_allele(uint64_t index);
     Position * get_position(){ return &this->position;}
     void set_position(Position pos){ this->position = pos;}
     uint64_t get_length() { return this->length; }

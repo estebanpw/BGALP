@@ -9,6 +9,7 @@
 #include "manager.h"
 #include "chromosome.h"
 #include "distance_functions.h"
+#include "crossover_functions.h"
 #include "population.h"
 #include "common_functions.h"
 
@@ -58,7 +59,7 @@ int main(int ac, char **av) {
     population->set_neighborhood_function(&all_together);
     
     //Add manager
-    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) sss, false);
+    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, false);
 
 
     return 0;
