@@ -59,5 +59,6 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
 
 
 template class Chromosome<double>;
+template class Chromosome<unsigned char>;
 template class Chromo_rucksack<double>;
 template class Chromo_subsetsum<unsigned char>;

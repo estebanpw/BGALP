@@ -11,6 +11,8 @@
 #include "population.h"
 #include "chromosome.h"
 
+#define MAXIMIZE true 
+#define MINIMIZE false
 
 template <class T> class Manager;
 
@@ -38,6 +40,7 @@ public:
     void set_populations(Population<T> * p, uint64_t index);
     void select_tournament(Population<T> * p1, Population<T> * p2, Pair<Chromosome<T>> * c_pair);
     void run(uint64_t n_itera);
+    Chromosome<T> * get_best_individual();
     void update_fitnesses(uint64_t curr_population, uint64_t curr_indv);
     ~Manager();
 

@@ -19,6 +19,16 @@ void Manager<T>::set_populations(Population<T> * pop, uint64_t index){
     this->population[index] = pop;
 }
 
+template <class T>
+Chromosome<T> * Manager<T>::get_best_individual(){
+    Chromosome<T> * best_c = this->population[0]->get_individual_at(this->population[0]->get_best());
+    for(uint64_t i=0;i<this->n_populations;i++){
+        if(this->population[i]->get_individual_at(this->population[i]->get_best())->get_fitness() > best_c->get_fitness()){
+            best_c = this->population[i]->get_individual_at(this->population[i]->get_best());
+        }
+    }
+    return best_c;
+}
 
 template <class T>
 void Manager<T>::update_fitnesses(uint64_t curr_population, uint64_t curr_indv){
@@ -66,6 +76,7 @@ void Manager<T>::run(uint64_t n_itera){
 
             replacement->compute_fitness(&this->solution_info);
             update_fitnesses(j, this->population[j]->get_worst());
+            printf("%Le\n", *replacement->get_fitness()); getchar();
         }
     }
 }

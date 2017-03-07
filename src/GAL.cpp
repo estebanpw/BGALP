@@ -45,6 +45,10 @@ int main(int ac, char **av) {
         sss.values[i] = u_d(uniform_generator);
         if(sss.values[i] % 2 == 0) sss.c += sss.values[i];
     }
+    for(uint64_t i=0;i<n_alleles;i++){
+        fprintf(stdout, "%" PRId64", ", sss.values[i]);
+    }
+    fprintf(stdout, "\nC=%" PRId64"\n", sss.c);
 
     //Allocate chromosomes
     Chromo_subsetsum<unsigned char> * ind = (Chromo_subsetsum<unsigned char> *) std::malloc(n_individuals*sizeof(Chromo_subsetsum<unsigned char>));
@@ -59,7 +63,13 @@ int main(int ac, char **av) {
     population->set_neighborhood_function(&all_together);
     
     //Add manager
-    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, false);
+    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, MINIMIZE);
+
+    manager->set_populations(population, 0);
+    manager->run(10000);
+
+    fprintf(stdout, "Best individual fitness: %Le\n", *manager->get_best_individual()->get_fitness());
+
 
 
     return 0;
