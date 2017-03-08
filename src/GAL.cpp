@@ -53,9 +53,9 @@ int main(int ac, char **av) {
     //Allocate chromosomes
     Chromo_subsetsum<unsigned char> * ind = (Chromo_subsetsum<unsigned char> *) std::malloc(n_individuals*sizeof(Chromo_subsetsum<unsigned char>));
     if(ind == NULL) throw "Could not allocate individuals";
-
     for(uint64_t i=0;i<n_individuals;i++){
-        new (&ind[i]) Chromo_subsetsum<unsigned char>(n_alleles, p);
+        new (&ind[i]) Chromo_subsetsum<unsigned char>(n_alleles, p, RANDOM);
+
     }
     
     //Assign chromosomes to population
@@ -65,8 +65,9 @@ int main(int ac, char **av) {
     //Add manager
     Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, MINIMIZE);
 
+    //Set population and put the manager to run
     manager->set_populations(population, 0);
-    manager->run(10000);
+    manager->run(10000000);
 
     fprintf(stdout, "Best individual fitness: %Le\n", *manager->get_best_individual()->get_fitness());
 

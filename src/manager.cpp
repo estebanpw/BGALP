@@ -34,14 +34,14 @@ template <class T>
 void Manager<T>::update_fitnesses(uint64_t curr_population, uint64_t curr_indv){
 
     if(this->maximize){
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() < this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() <= this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_best(curr_indv);
         }
         if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() > this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_worst(curr_indv);
         }
     }else{
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() > this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() >= this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_best(curr_indv);
         }
         if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() < this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
@@ -62,8 +62,6 @@ void Manager<T>::run(uint64_t n_itera){
         }
     }
 
-    Chromosome<T> * replacement;
-
     // Run generations
     for(i=1;i<n_itera;i++){
         for(j=0;j<n_populations;j++){
@@ -71,12 +69,35 @@ void Manager<T>::run(uint64_t n_itera){
             // Selection method here
             this->select_tournament(this->population[j], this->population[j], &this->pair[j]);
             replacement = this->population[j]->get_individual_at(this->population[j]->get_worst());
+
+            #ifdef VERBOSE
+            // Some info
+            fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
+            fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
+            #endif
+
             // Crossover function here
             this->crossover_function(this->pair[j]._e1, this->pair[j]._e2, replacement, this);
 
             replacement->compute_fitness(&this->solution_info);
-            update_fitnesses(j, this->population[j]->get_worst());
-            printf("%Le\n", *replacement->get_fitness()); getchar();
+            printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
+            #ifdef VERBOSE
+            fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
+            getchar();
+            #endif
+            // The worst individual is always replaced
+            this->population[j]->replace_worst(replacement);
+            
+            
+            // Update best and worst indices
+            if(this->maximize && replacement->get_fitness() >= this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(this->population[j]->get_worst());
+            if(!this->maximize && replacement->get_fitness() <= this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(this->population[j]->get_worst());
+            
+            
+            
+
+            fprintf(stdout, "I:%" PRIu64" -> %Le which is %" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), this->population[j]->get_best());
+            if(i % 1000 == 0) getchar();
         }
     }
 }
@@ -87,7 +108,7 @@ void Manager<T>::select_tournament(Population<T> * p1, Population<T> * p2, Pair<
     c_pair->_e1 = p1->get_individual_at(p1->get_size()*u_d(uniform_generator));
     c_pair->_e2 = c_pair->_e1; //In case p1 and p2 are the same pop
     
-    while(p2 != p1) c_pair->_e2 = p2->get_individual_at(p2->get_size()*u_d(uniform_generator));
+    while(c_pair->_e1 == c_pair->_e2) c_pair->_e2 = p2->get_individual_at(p2->get_size()*u_d(uniform_generator));
 }
 
 template <class T>

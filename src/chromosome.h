@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <random>
 #include "common_functions.h"
 #include "defs.h"
 
@@ -27,6 +28,8 @@ public:
     long double * get_fitness(){ return &this->fitness; }
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness(void * solution_info) = 0;
+    virtual void print_chromosome() = 0;
+    void random_bit_fill();
     void set_allele(uint64_t index, T * value); 
     T * get_allele(uint64_t index);
     Position * get_position(){ return &this->position;}
@@ -39,14 +42,16 @@ public:
 template <class T>
 class Chromo_rucksack : public Chromosome<T> {
 public:
-    Chromo_rucksack(uint64_t alleles, Position p);
+    Chromo_rucksack(uint64_t alleles, Position p, INITIALIZER init_type);
     void compute_fitness(void * solution_info);
+    void print_chromosome();
 };
 
 template <class T>
 class Chromo_subsetsum : public Chromosome<T> {
 public:
-    Chromo_subsetsum(uint64_t alleles, Position p);
+    Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER init_type);
     void compute_fitness(void * solution_info);
+    void print_chromosome();
 };
 

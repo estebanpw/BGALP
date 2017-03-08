@@ -15,6 +15,16 @@ T * Chromosome<T>::get_allele(uint64_t index){
 }
 
 template <class T>
+void Chromosome<T>::random_bit_fill(){
+    std::random_device engine;
+    for(uint64_t i=0;i<this->length;i++){
+        this->chromosome[i] = engine(); // sizeof(unsigned) * CHAR_BIT random bits
+        this->chromosome[i] = (unsigned char) (this->chromosome[i] > 127);
+    }
+    
+}
+
+template <class T>
 Chromosome<T>::~Chromosome(){
     if(this->chromosome != NULL) std::free(this->chromosome);
 }
@@ -22,11 +32,12 @@ Chromosome<T>::~Chromosome(){
 
 // Rucksack chromosome (not done)
 template <class T>
-Chromo_rucksack<T>::Chromo_rucksack(uint64_t alleles, Position p){
+Chromo_rucksack<T>::Chromo_rucksack(uint64_t alleles, Position p, INITIALIZER init_type){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
     this->length = alleles;
     this->fitness = 0;
     this->position = p;
+    if(init_type == RANDOM) this->random_bit_fill();
 }
 
 
@@ -35,14 +46,19 @@ void Chromo_rucksack<T>::compute_fitness(void * solution_info){
 
 }
 
+template <class T>
+void Chromo_rucksack<T>::print_chromosome(){
+
+}
 
 // Subset sum chromosome
 template <class T>
-Chromo_subsetsum<T>::Chromo_subsetsum(uint64_t alleles, Position p){
+Chromo_subsetsum<T>::Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER init_type){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
     this->length = alleles;
     this->fitness = 0;
     this->position = p;
+    if(init_type == RANDOM) this->random_bit_fill();
 }
 
 
@@ -51,11 +67,23 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
     Sol_subsetsum * ss = (Sol_subsetsum *) solution_info;
     int64_t t_sum = 0;
     for(uint64_t i=0; i<this->length; i++){
-        t_sum +=  (int64_t) this->chromosome[i] * ss->values[i];
+        t_sum +=  ((int64_t) this->chromosome[i]) * ss->values[i];
     }
-    this->fitness = (ss->c - t_sum) * (ss->c - t_sum);
+    //this->fitness = (long double)(ss->c - t_sum) * (ss->c - t_sum);
+    printf("Fitness: %" PRId64"\n", labs(t_sum));
+    this->fitness = abs((long double)t_sum);
+    
 }
 
+template <class T>
+void Chromo_subsetsum<T>::print_chromosome(){
+    fprintf(stdout, "\t@(%" PRId64", %" PRId64", %" PRId64") L: %" PRIu64"\n", this->position.x, this->position.y, this->position.z, this->length);
+    fprintf(stdout, "\tF: %Le\n\t", this->fitness);
+    for(uint64_t i=0;i<this->length;i++){
+        fprintf(stdout, "%d,", this->chromosome[i]);
+    }
+    fprintf(stdout, "\n");
+}
 
 
 template class Chromosome<double>;

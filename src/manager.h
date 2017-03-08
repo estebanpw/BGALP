@@ -22,6 +22,7 @@ class Manager{
 private:
     Pair<Chromosome<T>> * pair;
     bool maximize;
+    Chromosome<T> * replacement;
     //TODO parametrize the selection function as well
 
 protected:
