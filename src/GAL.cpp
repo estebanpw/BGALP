@@ -30,7 +30,7 @@ int main(int ac, char **av) {
 
     // Size of individuals and number of alleles per individual
     uint64_t n_individuals = 100;
-    uint64_t n_alleles = 100;
+    uint64_t n_alleles = 1000;
     // A generic position (0,0,0) for the chromosomes
     Position p = Position();
 
@@ -43,7 +43,7 @@ int main(int ac, char **av) {
     std::uniform_int_distribution<uint64_t> u_d (0, THE_MAX);
     for(uint64_t i=0;i<n_alleles;i++){
         sss.values[i] = u_d(uniform_generator);
-        if(sss.values[i] % 2 == 0) sss.c += sss.values[i];
+        if(sss.values[i] % 3 == 0) sss.c += sss.values[i];
     }
     for(uint64_t i=0;i<n_alleles;i++){
         fprintf(stdout, "%" PRId64", ", sss.values[i]);

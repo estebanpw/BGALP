@@ -59,6 +59,12 @@ bool Population<T>::is_in_neighborhood(uint64_t i1, uint64_t i2){
     return distance_function(this->ptr_individuals[i1]->get_position(), this->ptr_individuals[i2]->get_position());
 }
 
+template <class T>
+void Population<T>::print_all_fitness(){
+    for(uint64_t i=0; i<this->n_individuals; i++){
+        fprintf(stdout, "@[%" PRIu64"]%Le\n", i, *this->get_individual_at(i)->get_fitness());
+    }
+}
 
 template class Population<double>;
 template class Population<unsigned char>;

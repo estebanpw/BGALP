@@ -69,16 +69,18 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
     for(uint64_t i=0; i<this->length; i++){
         t_sum +=  ((int64_t) this->chromosome[i]) * ss->values[i];
     }
-    //this->fitness = (long double)(ss->c - t_sum) * (ss->c - t_sum);
-    printf("Fitness: %" PRId64"\n", labs(t_sum));
-    this->fitness = abs((long double)t_sum);
+    //printf("Hyped: %" PRId64"\n", ss->c - t_sum);
+    //printf("Before: %" PRId64"\n", ((ss->c - t_sum) * (ss->c - t_sum)));
+    this->fitness = (long double) ((ss->c - t_sum) * (ss->c - t_sum));
+    //this->fitness = (long double) ((ss->c - t_sum) * (ss->c - t_sum));
+    //printf("Update: %.3Le\n", this->fitness);
     
 }
 
 template <class T>
 void Chromo_subsetsum<T>::print_chromosome(){
     fprintf(stdout, "\t@(%" PRId64", %" PRId64", %" PRId64") L: %" PRIu64"\n", this->position.x, this->position.y, this->position.z, this->length);
-    fprintf(stdout, "\tF: %Le\n\t", this->fitness);
+    fprintf(stdout, "\tF: %.3Le\n\t", this->fitness);
     for(uint64_t i=0;i<this->length;i++){
         fprintf(stdout, "%d,", this->chromosome[i]);
     }

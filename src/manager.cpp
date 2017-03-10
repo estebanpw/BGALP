@@ -33,18 +33,21 @@ Chromosome<T> * Manager<T>::get_best_individual(){
 template <class T>
 void Manager<T>::update_fitnesses(uint64_t curr_population, uint64_t curr_indv){
 
-    if(this->maximize){
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() <= this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+    if(this->maximize){       
+        if(*this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() <= *this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_best(curr_indv);
         }
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() > this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+        if(*this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() > *this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+            this->population[curr_population]->set_worst(curr_indv);
+        }
+        if(*this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() > *this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_worst(curr_indv);
         }
     }else{
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() >= this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+        if(*this->population[curr_population]->get_individual_at(this->population[curr_population]->get_best())->get_fitness() >= *this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_best(curr_indv);
         }
-        if(this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() < this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
+        if(*this->population[curr_population]->get_individual_at(this->population[curr_population]->get_worst())->get_fitness() < *this->population[curr_population]->get_individual_at(curr_indv)->get_fitness()){
             this->population[curr_population]->set_worst(curr_indv);
         }
     }
@@ -60,15 +63,32 @@ void Manager<T>::run(uint64_t n_itera){
             this->population[i]->get_individual_at(j)->compute_fitness(this->solution_info);
             update_fitnesses(i,j);
         }
+        // In case they coincide
+        if(this->population[i]->get_best() == this->population[i]->get_worst()){
+            this->population[i]->set_worst((this->population[i]->get_worst() + 1) % this->population[i]->get_size());
+        }
+
+        /*
+        printf("INIT CONFIG:\n");
+        for(j=0;j<this->population[i]->get_size();j++){
+            this->population[i]->get_individual_at(j)->print_chromosome();
+        }
+        printf("Current best f: %.3Le, worst : %.3Le\n", *this->population[i]->get_best_individual()->get_fitness(), *this->population[i]->get_worst_individual()->get_fitness());
+        getchar();
+        */
     }
 
+
+    uint64_t replace_pos, k, second_worst;
+    
     // Run generations
     for(i=1;i<n_itera;i++){
         for(j=0;j<n_populations;j++){
 
             // Selection method here
             this->select_tournament(this->population[j], this->population[j], &this->pair[j]);
-            replacement = this->population[j]->get_individual_at(this->population[j]->get_worst());
+            replace_pos = this->population[j]->get_worst();
+            replacement = this->population[j]->get_individual_at(replace_pos);
 
             #ifdef VERBOSE
             // Some info
@@ -79,25 +99,40 @@ void Manager<T>::run(uint64_t n_itera){
             // Crossover function here
             this->crossover_function(this->pair[j]._e1, this->pair[j]._e2, replacement, this);
 
-            replacement->compute_fitness(&this->solution_info);
-            printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
+            replacement->compute_fitness(this->solution_info);
+            
             #ifdef VERBOSE
+            printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
             fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
             getchar();
             #endif
+
             // The worst individual is always replaced
             this->population[j]->replace_worst(replacement);
-            
-            
-            // Update best and worst indices
-            if(this->maximize && replacement->get_fitness() >= this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(this->population[j]->get_worst());
-            if(!this->maximize && replacement->get_fitness() <= this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(this->population[j]->get_worst());
-            
-            
-            
 
-            fprintf(stdout, "I:%" PRIu64" -> %Le which is %" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), this->population[j]->get_best());
-            if(i % 1000 == 0) getchar();
+            // Find new worst 
+            second_worst = 0;
+            for(k=0;k<this->population[j]->get_size();k++){
+                if(k != replace_pos){
+                    if(this->maximize && *this->population[j]->get_individual_at(second_worst)->get_fitness() >= *this->population[j]->get_individual_at(k)->get_fitness()) second_worst = k;
+                    if(!this->maximize && *this->population[j]->get_individual_at(second_worst)->get_fitness() <= *this->population[j]->get_individual_at(k)->get_fitness()) second_worst = k;
+                }
+            }
+            this->population[j]->set_worst(second_worst);
+            
+            // Update best index
+            if(this->maximize && *replacement->get_fitness() >= *this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(replace_pos);
+            if(!this->maximize && *replacement->get_fitness() <= *this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(replace_pos);
+            
+            //printf("Current best f: %.3Le, worst : %.3Le\n", *this->population[j]->get_best_individual()->get_fitness(), *this->population[j]->get_worst_individual()->get_fitness());
+            
+            if(i % 100 == 0){
+                this->population[j]->print_all_fitness();
+                fprintf(stdout, "I(%" PRIu64") :: %.3Le @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), this->population[j]->get_best());
+                getchar();
+            } 
+            
+            
         }
     }
 }
