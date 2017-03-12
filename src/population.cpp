@@ -68,3 +68,4 @@ void Population<T>::print_all_fitness(){
 
 template class Population<double>;
 template class Population<unsigned char>;
+template class Population<uint64_t>;

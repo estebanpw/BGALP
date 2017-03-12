@@ -18,4 +18,38 @@ void single_point_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> 
     }
 }
 
+template <class T>
+void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m){
+    
+    uint64_t low = a->get_length()*m->u_d(m->uniform_generator);
+    uint64_t high = low + (a->get_length()/10)*m->u_d(m->uniform_generator);
+    
+    for(uint64_t i=0;i<a->get_length();i++){
+        m->marks[i] = 0;
+    }
+    
+    
+    uint64_t pos;
+    for(uint64_t i=0;i<low;i++){
+        replacement->set_allele(i, a->get_allele(i));
+        m->marks[*a->get_allele(i)] = 1;
+    }
+    
+    for(uint64_t i=high;i<a->get_length();i++){
+        replacement->set_allele(i, a->get_allele(i));
+        m->marks[*a->get_allele(i)] = 1;
+    }
+    
+    pos = low;
+    //Copy the rest from the other
+    for(uint64_t i=0;i<a->get_length();i++){
+        if(m->marks[*b->get_allele(i)] == 0){
+            replacement->set_allele(pos, b->get_allele(i));
+            m->marks[*b->get_allele(i)] = 1;
+            pos++;
+        }
+    }
+}
+
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
+template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);

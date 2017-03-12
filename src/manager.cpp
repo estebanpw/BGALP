@@ -12,11 +12,18 @@ Manager<T>::Manager(uint64_t n_populations, void (*cf)(Chromosome<T> * a, Chromo
     this->u_d = std::uniform_real_distribution<long double>(0.0, 1.0); 
     this->pair = (Pair<Chromosome<T>> *) std::malloc(n_populations*sizeof(Pair<Chromosome<T>>));
     this->solution_info = solution_info;
+    this->marks = NULL;
 }
 
 template <class T>
 void Manager<T>::set_populations(Population<T> * pop, uint64_t index){
     this->population[index] = pop;
+}
+
+template <class T>
+void Manager<T>::generate_marks_for_ordered_crossover(uint64_t n_alleles){
+    this->marks = (unsigned char *) std::malloc(n_alleles*sizeof(unsigned char));
+    if(this->marks == NULL) throw "Could not generate marks for ordered crossover";
 }
 
 template <class T>
@@ -151,9 +158,11 @@ Manager<T>::~Manager(){
     for(uint64_t i=0;i<n_populations;i++){
         delete population[i];
     }
+    if(this->marks != NULL) std::free(this->marks);
     std::free(population);
     std::free(pair);
 
 }
 
 template class Manager<unsigned char>;
+template class Manager<uint64_t>;

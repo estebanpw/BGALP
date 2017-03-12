@@ -19,7 +19,6 @@ void Chromosome<T>::random_bit_fill(){
     std::random_device engine;
     for(uint64_t i=0;i<this->length;i++){
         this->chromosome[i] = engine(); // sizeof(unsigned) * CHAR_BIT random bits
-        this->chromosome[i] = (unsigned char) (this->chromosome[i] > 127);
     }
     
 }
@@ -28,6 +27,17 @@ template <class T>
 Chromosome<T>::~Chromosome(){
     if(this->chromosome != NULL) std::free(this->chromosome);
 }
+
+template <class T>
+void Chromosome<T>::print_chromosome(){
+    std::cout << "\t@(" << this->position.x <<  ", " << this->position.y << ", " << this->position.z << ") L: " << this->length << std::endl;
+    std::cout << "\tF: " << this->fitness << std::endl;
+    for(uint64_t i=0;i<this->length;i++){
+        std::cout << this->chromosome[i] << ", ";
+    }
+    std::cout << std::endl;
+}
+
 
 
 // Rucksack chromosome (not done)
@@ -46,11 +56,6 @@ void Chromo_rucksack<T>::compute_fitness(void * solution_info){
 
 }
 
-template <class T>
-void Chromo_rucksack<T>::print_chromosome(){
-
-}
-
 // Subset sum chromosome
 template <class T>
 Chromo_subsetsum<T>::Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER init_type){
@@ -59,6 +64,9 @@ Chromo_subsetsum<T>::Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER 
     this->fitness = 0;
     this->position = p;
     if(init_type == RANDOM) this->random_bit_fill();
+    for(uint64_t i=0;i<this->length;i++){
+        this->chromosome[i] = (unsigned char) (this->chromosome[i] > 127);
+    }
 }
 
 
@@ -77,18 +85,38 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
     
 }
 
+// Chromosome for TSP
+
+// Subset sum chromosome
 template <class T>
-void Chromo_subsetsum<T>::print_chromosome(){
-    fprintf(stdout, "\t@(%" PRId64", %" PRId64", %" PRId64") L: %" PRIu64"\n", this->position.x, this->position.y, this->position.z, this->length);
-    fprintf(stdout, "\tF: %.3Le\n\t", this->fitness);
-    for(uint64_t i=0;i<this->length;i++){
-        fprintf(stdout, "%d,", this->chromosome[i]);
+Chromo_TSP<T>::Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type){
+    this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    this->length = alleles;
+    this->fitness = LDBL_MAX;
+    this->position = p;
+    uint64_t seed;
+    for(uint64_t i=0;i<this->length;i++) seed += this->chromosome[i];
+    random_shuffle_templated(this->length, this->chromosome, seed);
+    
+}
+
+
+template <class T>
+void Chromo_TSP<T>::compute_fitness(void * solution_info){
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) solution_info;
+    long double path_sum = 0;
+    for(uint64_t i=1; i<this->length; i++){
+        path_sum +=  tsp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
     }
-    fprintf(stdout, "\n");
+    this->fitness = path_sum;
+    
+    
 }
 
 
 template class Chromosome<double>;
 template class Chromosome<unsigned char>;
+template class Chromosome<uint64_t>;
 template class Chromo_rucksack<double>;
 template class Chromo_subsetsum<unsigned char>;
+template class Chromo_TSP<uint64_t>;

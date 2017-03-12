@@ -26,10 +26,15 @@ struct Position{
     Position(int64_t x = 0, int64_t y = 0, int64_t z = 0): x(x), y(y), z(z) {}
 };
 
-// Structs and methods for subset sum
-
+// Structs for Subset sum
 struct Sol_subsetsum{
     int64_t * values; //The array of values
     int64_t c; //The value to reach
 };
 
+// Structs for TSP
+struct Sol_TSP_matrix{
+    long double ** dist;
+    uint64_t n;
+    uint64_t * nodes;
+};

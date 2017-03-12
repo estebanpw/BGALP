@@ -5,6 +5,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <iostream>
+#include <cfloat>
 #include <random>
 #include "common_functions.h"
 #include "defs.h"
@@ -13,6 +15,7 @@
 template <class T> class Chromosome;
 template <class T> class Chromo_rucksack;
 template <class T> class Chromo_subsetsum;
+template <class T> class Chromo_TSP;
 
 template <class T>
 class Chromosome{
@@ -28,13 +31,14 @@ public:
     long double * get_fitness(){ return &this->fitness; }
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness(void * solution_info) = 0;
-    virtual void print_chromosome() = 0;
     void random_bit_fill();
+    void random_bit_fill(uint64_t max_l);
     void set_allele(uint64_t index, T * value); 
     T * get_allele(uint64_t index);
     Position * get_position(){ return &this->position;}
     void set_position(Position pos){ this->position = pos;}
     uint64_t get_length() { return this->length; }
+    void print_chromosome();
     ~Chromosome();
 };
 
@@ -44,7 +48,6 @@ class Chromo_rucksack : public Chromosome<T> {
 public:
     Chromo_rucksack(uint64_t alleles, Position p, INITIALIZER init_type);
     void compute_fitness(void * solution_info);
-    void print_chromosome();
 };
 
 template <class T>
@@ -52,6 +55,11 @@ class Chromo_subsetsum : public Chromosome<T> {
 public:
     Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER init_type);
     void compute_fitness(void * solution_info);
-    void print_chromosome();
 };
 
+template <class T>
+class Chromo_TSP : public Chromosome<T> {
+public:
+    Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type);
+    void compute_fitness(void * solution_info);
+};

@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <ctype.h>
 #include <string.h>
+#include <random>
 #include <math.h>
 #include "defs.h"
 
@@ -17,3 +18,5 @@ void terror(const char *s);
  */
 char buffered_fgetc(char *buffer, uint64_t *pos, uint64_t *read, FILE *f);
 
+template <class T>
+void random_shuffle_templated(uint64_t n_elements, T * vector, uint64_t seed);

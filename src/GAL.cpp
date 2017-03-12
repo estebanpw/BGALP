@@ -12,6 +12,7 @@
 #include "crossover_functions.h"
 #include "population.h"
 #include "common_functions.h"
+#include "readstream.h"
 
 #define THE_MAX 1000
 
@@ -28,42 +29,49 @@ void init_args(int argc, char ** av);
 
 int main(int ac, char **av) {
 
+    // TSP structure
+    Sol_TSP_matrix tsp;
+
+    // Readstream to load data 
+    Readstream * rs = new Readstream("/home/esteban/github/GAL/data/afew.tsp", &reading_function_TSP, (void *) &tsp);
+
     // Size of individuals and number of alleles per individual
     uint64_t n_individuals = 100;
-    uint64_t n_alleles = 1000;
-    // A generic position (0,0,0) for the chromosomes
+    uint64_t n_alleles = tsp.n;
+    
+    // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
 
-    // Solution to the problem
-    Sol_subsetsum sss;
-    sss.values = (int64_t *) std::malloc(n_alleles * sizeof(int64_t));
-    if(sss.values == NULL) throw "Could not allocate solution";
-    sss.c = 0;
-    std::default_random_engine uniform_generator;
-    std::uniform_int_distribution<uint64_t> u_d (0, THE_MAX);
-    for(uint64_t i=0;i<n_alleles;i++){
-        sss.values[i] = u_d(uniform_generator);
-        if(sss.values[i] % 3 == 0) sss.c += sss.values[i];
-    }
-    for(uint64_t i=0;i<n_alleles;i++){
-        fprintf(stdout, "%" PRId64", ", sss.values[i]);
-    }
-    fprintf(stdout, "\nC=%" PRId64"\n", sss.c);
 
-    //Allocate chromosomes
-    Chromo_subsetsum<unsigned char> * ind = (Chromo_subsetsum<unsigned char> *) std::malloc(n_individuals*sizeof(Chromo_subsetsum<unsigned char>));
+    // Allocate chromosomes
+    Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
     if(ind == NULL) throw "Could not allocate individuals";
     for(uint64_t i=0;i<n_individuals;i++){
-        new (&ind[i]) Chromo_subsetsum<unsigned char>(n_alleles, p, RANDOM);
+        new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM);
 
     }
-    
-    //Assign chromosomes to population
-    Population<unsigned char> * population = new Population<unsigned char>(n_individuals, ind);
+
+    tsp.nodes = (uint64_t *) std::malloc(n_alleles*sizeof(uint64_t));
+    if(tsp.nodes == NULL) throw "Could not allocate node instances";
+    // Make a copy of an ordered list of the nodes to travel
+    for(uint64_t i=0;i<n_individuals;i++){
+        for(uint64_t j=0;j<n_alleles;j++){
+            tsp.nodes[j] = j;
+            ind[i].set_allele(j, &tsp.nodes[j]);
+        }
+    }
+
+    // Assign chromosomes to population
+    Population<uint64_t> * population = new Population<uint64_t>(n_individuals, ind);
     population->set_neighborhood_function(&all_together);
+
+    // Add manager
+    Manager<uint64_t> * manager = new Manager<uint64_t>(1, &ordered_crossover, (void *) &tsp, MINIMIZE);
+    manager->generate_marks_for_ordered_crossover(n_alleles);
+
+    /*
     
-    //Add manager
-    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, MINIMIZE);
+    
 
     //Set population and put the manager to run
     manager->set_populations(population, 0);
@@ -71,7 +79,7 @@ int main(int ac, char **av) {
 
     fprintf(stdout, "Best individual fitness: %Le\n", *manager->get_best_individual()->get_fitness());
 
-
+    */
 
     return 0;
 }
@@ -144,3 +152,52 @@ void init_args(int argc, char ** av){
     */
 }
 
+// For Subset sum 
+/*
+// Size of individuals and number of alleles per individual
+    uint64_t n_individuals = 100;
+    uint64_t n_alleles = 1000;
+    // A generic position (0,0,0) for the chromosomes
+    Position p = Position();
+
+    // Solution to the problem
+    Sol_subsetsum sss;
+    sss.values = (int64_t *) std::malloc(n_alleles * sizeof(int64_t));
+    if(sss.values == NULL) throw "Could not allocate solution";
+    sss.c = 0;
+    std::default_random_engine uniform_generator;
+    std::uniform_int_distribution<uint64_t> u_d (0, THE_MAX);
+    for(uint64_t i=0;i<n_alleles;i++){
+        sss.values[i] = u_d(uniform_generator);
+        if(sss.values[i] % 3 == 0) sss.c += sss.values[i];
+    }
+    for(uint64_t i=0;i<n_alleles;i++){
+        fprintf(stdout, "%" PRId64", ", sss.values[i]);
+    }
+    fprintf(stdout, "\nC=%" PRId64"\n", sss.c);
+
+    //Allocate chromosomes
+    Chromo_subsetsum<unsigned char> * ind = (Chromo_subsetsum<unsigned char> *) std::malloc(n_individuals*sizeof(Chromo_subsetsum<unsigned char>));
+    if(ind == NULL) throw "Could not allocate individuals";
+    for(uint64_t i=0;i<n_individuals;i++){
+        new (&ind[i]) Chromo_subsetsum<unsigned char>(n_alleles, p, RANDOM);
+
+    }
+    
+    //Assign chromosomes to population
+    Population<unsigned char> * population = new Population<unsigned char>(n_individuals, ind);
+    population->set_neighborhood_function(&all_together);
+    
+    //Add manager
+    Manager<unsigned char> * manager = new Manager<unsigned char>(1, &single_point_crossover, (void *) &sss, MINIMIZE);
+
+    //Set population and put the manager to run
+    manager->set_populations(population, 0);
+    manager->run(10000000);
+
+    fprintf(stdout, "Best individual fitness: %Le\n", *manager->get_best_individual()->get_fitness());
+
+
+
+    return 0;
+*/
