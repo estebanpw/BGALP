@@ -21,15 +21,15 @@ void single_point_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> 
 template <class T>
 void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m){
     
-    uint64_t low = a->get_length()*m->u_d(m->uniform_generator);
-    uint64_t high = low + (a->get_length()/10)*m->u_d(m->uniform_generator);
+    uint64_t low = (a->get_length())*m->u_d(m->uniform_generator);
+    uint64_t high = low + (a->get_length()-low)*m->u_d(m->uniform_generator);
     
     for(uint64_t i=0;i<a->get_length();i++){
         m->marks[i] = 0;
     }
     
     
-    uint64_t pos;
+    
     for(uint64_t i=0;i<low;i++){
         replacement->set_allele(i, a->get_allele(i));
         m->marks[*a->get_allele(i)] = 1;
@@ -40,15 +40,25 @@ void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * rep
         m->marks[*a->get_allele(i)] = 1;
     }
     
-    pos = low;
+    uint64_t pos = low;
     //Copy the rest from the other
+    bool die = false;
     for(uint64_t i=0;i<a->get_length();i++){
         if(m->marks[*b->get_allele(i)] == 0){
+            if(pos > a->get_length()){
+                printf(" DIEEEEEEE: %" PRIu64" at [%" PRIu64", %" PRIu64" and val: %" PRIu64"\n", pos, low, high, *b->get_allele(i));
+                die = true;
+            } 
             replacement->set_allele(pos, b->get_allele(i));
             m->marks[*b->get_allele(i)] = 1;
             pos++;
         }
     }
+    if(die){
+        replacement->print_chromosome();
+        getchar();
+    }
+    
 }
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);

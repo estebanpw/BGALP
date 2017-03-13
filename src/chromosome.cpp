@@ -89,14 +89,17 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
 
 // Subset sum chromosome
 template <class T>
-Chromo_TSP<T>::Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type){
+Chromo_TSP<T>::Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
     this->length = alleles;
     this->fitness = LDBL_MAX;
     this->position = p;
-    uint64_t seed;
-    for(uint64_t i=0;i<this->length;i++) seed += this->chromosome[i];
-    random_shuffle_templated(this->length, this->chromosome, seed);
+    uint64_t seed = 0; // Do not fix
+    for(uint64_t i=0;i<alleles;i++){ this->chromosome[i] = i; }
+    random_shuffle_templated(this->length, this->chromosome, seed, g, u_d);
+    #ifdef VERBOSE
+    this->print_chromosome();
+    #endif
     
 }
 

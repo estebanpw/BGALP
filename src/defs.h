@@ -4,6 +4,8 @@
 #define READBUF 1000
 #define POOL_SIZE 1024*1024*1024 //1 MB 
 #define LIST_POOL_SIZE 128
+#define MAX_PATH 2048
+#define MAX_LINE 2048
 
 enum INITIALIZER { RANDOM, CLEAR };
 
@@ -36,5 +38,4 @@ struct Sol_subsetsum{
 struct Sol_TSP_matrix{
     long double ** dist;
     uint64_t n;
-    uint64_t * nodes;
 };

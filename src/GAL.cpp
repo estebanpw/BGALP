@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <time.h>
 #include <random>
 #include <iostream>
 #include <float.h>
@@ -25,41 +26,46 @@ int DEBUG_ACTIVE = 0;
 */
 
 
-void init_args(int argc, char ** av);
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera);
 
-int main(int ac, char **av) {
+int main(int argc, char **av) {
+
+    // Number of iterations
+    uint64_t n_itera = 10000;
 
     // TSP structure
     Sol_TSP_matrix tsp;
+    // Path to tsp lib
+    char tsp_lib[MAX_PATH];
+    tsp_lib[0] = '\0';
+
+    // Init arguments
+    init_args(argc, av, tsp_lib, &n_itera);
 
     // Readstream to load data 
-    Readstream * rs = new Readstream("/home/esteban/github/GAL/data/afew.tsp", &reading_function_TSP, (void *) &tsp);
+    Readstream * rs = new Readstream(tsp_lib, &reading_function_TSP, (void *) &tsp);
+    rs->read();
 
     // Size of individuals and number of alleles per individual
     uint64_t n_individuals = 100;
     uint64_t n_alleles = tsp.n;
+    
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
 
 
     // Allocate chromosomes
+
+    std::default_random_engine generator = std::default_random_engine(time(NULL));
+    std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
+
     Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
     if(ind == NULL) throw "Could not allocate individuals";
     for(uint64_t i=0;i<n_individuals;i++){
-        new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM);
-
+        new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     }
 
-    tsp.nodes = (uint64_t *) std::malloc(n_alleles*sizeof(uint64_t));
-    if(tsp.nodes == NULL) throw "Could not allocate node instances";
-    // Make a copy of an ordered list of the nodes to travel
-    for(uint64_t i=0;i<n_individuals;i++){
-        for(uint64_t j=0;j<n_alleles;j++){
-            tsp.nodes[j] = j;
-            ind[i].set_allele(j, &tsp.nodes[j]);
-        }
-    }
 
     // Assign chromosomes to population
     Population<uint64_t> * population = new Population<uint64_t>(n_individuals, ind);
@@ -69,23 +75,21 @@ int main(int ac, char **av) {
     Manager<uint64_t> * manager = new Manager<uint64_t>(1, &ordered_crossover, (void *) &tsp, MINIMIZE);
     manager->generate_marks_for_ordered_crossover(n_alleles);
 
-    /*
-    
-    
 
     //Set population and put the manager to run
     manager->set_populations(population, 0);
-    manager->run(10000000);
+    manager->run(n_itera);
 
-    fprintf(stdout, "Best individual fitness: %Le\n", *manager->get_best_individual()->get_fitness());
+    fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
 
-    */
+    
+    delete manager;
 
     return 0;
 }
 
 
-void init_args(int argc, char ** av){
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera){
     
     int pNum = 0;
     while(pNum < argc){
@@ -94,18 +98,21 @@ void init_args(int argc, char ** av){
             fprintf(stdout, "USAGE:\n");
             fprintf(stdout, "           GAL\n");
             fprintf(stdout, "OPTIONAL:\n");
-            //fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
+            fprintf(stdout, "           -data       [Path to data]\n");
+            fprintf(stdout, "           -itera      [Integer > 0] def: 10000\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
         }
-        /*
-        if(strcmp(av[pNum], "-multifrags") == 0){
-            *multifrags = fopen64(av[pNum+1], "rb");
-            strncpy(path_frags, av[pNum+1], strlen(av[pNum+1]));
-            path_frags[strlen(av[pNum+1])] = '\0';
-            if(multifrags==NULL) terror("Could not open multifrags file");
+        
+        if(strcmp(av[pNum], "-data") == 0){
+            strncpy(data, av[pNum+1], strlen(av[pNum+1]));
+            data[strlen(av[pNum+1])] = '\0';
         }
+        if(strcmp(av[pNum], "-itera") == 0){
+            *n_itera = (uint64_t) atoi(av[pNum+1]);
+        }
+        /*
         if(strcmp(av[pNum], "-pathfiles") == 0){
             strncpy(path_files, av[pNum+1], strlen(av[pNum+1]));
             path_files[strlen(av[pNum+1])] = '\0';
@@ -150,6 +157,7 @@ void init_args(int argc, char ** av){
         terror("A frags file, a path to the fasta files and an output file must be specified");
     }
     */
+    if(data[0] == '\0') throw "No input data selected";
 }
 
 // For Subset sum 

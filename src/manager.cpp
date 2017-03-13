@@ -133,10 +133,10 @@ void Manager<T>::run(uint64_t n_itera){
             
             //printf("Current best f: %.3Le, worst : %.3Le\n", *this->population[j]->get_best_individual()->get_fitness(), *this->population[j]->get_worst_individual()->get_fitness());
             
-            if(i % 100 == 0){
-                this->population[j]->print_all_fitness();
-                fprintf(stdout, "I(%" PRIu64") :: %.3Le @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), this->population[j]->get_best());
-                getchar();
+            if(i % 1000 == 0){
+                //  this->population[j]->print_all_fitness();
+                fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
+                //getchar();
             } 
             
             

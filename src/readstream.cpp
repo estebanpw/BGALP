@@ -23,9 +23,15 @@ void reading_function_TSP(FILE * input, void * type_structure){
     long double x, y;
     
     // Count lines
-    while(!feof(input)){
-        if(3 == fscanf(input, "%" PRIu64" %Le %Le", &id, &x, &y)){
+    char buffer[MAX_LINE];
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+
+        //printf("Look pussy u read: %s\n", buffer);
+        if(3 == sscanf(buffer, "%" PRIu64" %Le %Le", &id, &x, &y)){
             total++;
+            #ifdef VERBOSE
+            fprintf(stdout, "%" PRIu64", %.3Le %.3Le\n", id, x, y);
+            #endif
         }
     }
     // Go to start
@@ -37,6 +43,7 @@ void reading_function_TSP(FILE * input, void * type_structure){
     if(aux == NULL || aux2 == NULL) throw "Could not allocate temporary vector for weight matrix";
 
     tsp_mat->n = total;
+    
     tsp_mat->dist = (long double **) std::malloc(total * sizeof(long double *));
     if(tsp_mat->dist == NULL) throw "Could not allocate TSP lib nodes (1)";
     for(uint64_t i=0;i<total;i++){
@@ -45,10 +52,11 @@ void reading_function_TSP(FILE * input, void * type_structure){
     }
 
     // Add nodes
-    while(!feof(input)){
-        if(3 == fscanf(input, "%" PRIu64" %Le %Le", &id, &x, &y)){
-            aux[id] = x;
-            aux2[id] = y;
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+
+        if(3 == sscanf(buffer, "%" PRIu64" %Le %Le", &id, &x, &y)){
+            aux[id-1] = x;
+            aux2[id-1] = y;
         }
     }
 
