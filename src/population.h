@@ -33,7 +33,6 @@ public:
     void set_neighborhood_function(bool (*dst)(Position * p1, Position * p2));
     bool is_in_neighborhood(uint64_t i1, uint64_t i2);
     Chromosome<T> * get_individual_at(uint64_t index){ return this->ptr_individuals[index]; }
-    void swap_individuals(uint64_t i1, uint64_t i2);
     void set_best(uint64_t index){ this->index_best = index; }
     uint64_t get_best(){ return this->index_best; }
     Chromosome<T> * get_best_individual(){ return this->ptr_individuals[index_best]; }

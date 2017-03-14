@@ -50,7 +50,7 @@ void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * rep
     
     for(uint64_t i=0;i<a->get_length();i++){
         if(m->marks[*b->get_allele(i)] == 0){
-            
+            printf("pos: %" PRIu64"\n", pos);
             replacement->set_allele(pos, b->get_allele(i));
             m->marks[*b->get_allele(i)] = 1;
             pos++;

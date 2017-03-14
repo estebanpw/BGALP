@@ -7,8 +7,10 @@ void mutation_function_TSP(Chromosome<T> * a, Population<T> * pop, Manager<T> * 
     for(uint64_t i=0;i<a->get_length();i++){
         if(m->u_d(m->uniform_generator) <= p){
             uint64_t swap_pos = i;
-            while(swap_pos == i) swap_pos = (a->get_length())*m->u_d(m->uniform_generator);
-            pop->swap_individuals(i, swap_pos);
+            while(swap_pos == i) swap_pos = (uint64_t)(a->get_length())*m->u_d(m->uniform_generator);
+            T * aux = a->get_allele(i);
+            a->set_allele(i, a->get_allele(swap_pos));
+            a->set_allele(swap_pos, aux);
         }
     }
 }
