@@ -13,6 +13,7 @@
 #include "crossover_functions.h"
 #include "population.h"
 #include "common_functions.h"
+#include "mutation_functions.h"
 #include "readstream.h"
 
 #define THE_MAX 1000
@@ -72,7 +73,7 @@ int main(int argc, char **av) {
     population->set_neighborhood_function(&all_together);
 
     // Add manager
-    Manager<uint64_t> * manager = new Manager<uint64_t>(1, &ordered_crossover, (void *) &tsp, MINIMIZE);
+    Manager<uint64_t> * manager = new Manager<uint64_t>(1, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
     manager->generate_marks_for_ordered_crossover(n_alleles);
 
 

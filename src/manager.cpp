@@ -2,13 +2,14 @@
 
 
 template <class T>
-Manager<T>::Manager(uint64_t n_populations, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void * solution_info, bool maximize){
+Manager<T>::Manager(uint64_t n_populations, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize){
     
     this->maximize = maximize;
     this->n_populations = n_populations;
     this->population = (Population<T> **) std::malloc(n_populations*sizeof(Population<T> *));
     if(this->population == NULL) throw "Could not allocate population pointers";
     this->crossover_function = cf;
+    this->mutation_function = mut;
     this->u_d = std::uniform_real_distribution<long double>(0.0, 1.0); 
     this->pair = (Pair<Chromosome<T>> *) std::malloc(n_populations*sizeof(Pair<Chromosome<T>>));
     this->solution_info = solution_info;
@@ -107,6 +108,9 @@ void Manager<T>::run(uint64_t n_itera){
 
             // Crossover function here
             this->crossover_function(this->pair[j]._e1, this->pair[j]._e2, replacement, this);
+
+            // Mutation here
+            this->mutation_function(replacement, this->population[j], this, (long double)1/replacement->get_length());
 
             replacement->compute_fitness(this->solution_info);
             

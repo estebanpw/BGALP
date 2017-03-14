@@ -50,6 +50,14 @@ void Population<T>::set_individual_position(uint64_t ith, Position p){
 }
 
 template <class T>
+void Population<T>::swap_individuals(uint64_t i1, uint64_t i2){
+    Chromosome<T> * aux;
+    aux = this->ptr_individuals[i1];
+    this->ptr_individuals[i1] = this->ptr_individuals[i2];
+    this->ptr_individuals[i2] = aux;
+}
+
+template <class T>
 void Population<T>::set_neighborhood_function(bool (*dst)(Position * p1, Position * p2)){
     this->distance_function = dst;
 }
