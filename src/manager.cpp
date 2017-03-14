@@ -93,9 +93,11 @@ void Manager<T>::run(uint64_t n_itera){
         for(j=0;j<n_populations;j++){
 
             // Selection method here
-            this->select_tournament(this->population[j], this->population[j], &this->pair[j]);
             replace_pos = this->population[j]->get_worst();
             replacement = this->population[j]->get_individual_at(replace_pos);
+            do{
+                this->select_tournament(this->population[j], this->population[j], &this->pair[j]);
+            }while(this->pair[j]._e1 == replacement || this->pair[j]._e2 == replacement);
 
             #ifdef VERBOSE
             // Some info
