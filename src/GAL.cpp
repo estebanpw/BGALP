@@ -27,12 +27,18 @@ int DEBUG_ACTIVE = 0;
 */
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera);
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every);
 
 int main(int argc, char **av) {
 
     // Number of iterations
     uint64_t n_itera = 10000;
+    // Size of individuals
+    uint64_t n_individuals = 100;
+    // Partitions of population
+    uint64_t part = 1;
+    // Mix an individual between populations every k iterations
+    uint64_t mix_every = n_itera/20;
 
     // TSP structure
     Sol_TSP_matrix tsp;
@@ -41,14 +47,13 @@ int main(int argc, char **av) {
     tsp_lib[0] = '\0';
 
     // Init arguments
-    init_args(argc, av, tsp_lib, &n_itera);
+    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every);
 
     // Readstream to load data 
     Readstream * rs = new Readstream(tsp_lib, &reading_function_TSP, (void *) &tsp);
     rs->read();
 
-    // Size of individuals and number of alleles per individual
-    uint64_t n_individuals = 100;
+    // Number of alleles per individual
     uint64_t n_alleles = tsp.n;
     
     
@@ -56,29 +61,39 @@ int main(int argc, char **av) {
     Position p = Position();
 
 
-    // Allocate chromosomes
-
+    
+    // Random numbers for the manager
     std::default_random_engine generator = std::default_random_engine(time(NULL));
     std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
 
+    // Allocate chromosomes
     Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
     if(ind == NULL) throw "Could not allocate individuals";
     for(uint64_t i=0;i<n_individuals;i++){
         new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     }
 
-
-    // Assign chromosomes to population
-    Population<uint64_t> * population = new Population<uint64_t>(n_individuals, ind);
-    population->set_neighborhood_function(&all_together);
-
     // Add manager
-    Manager<uint64_t> * manager = new Manager<uint64_t>(1, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
+    Manager<uint64_t> * manager = new Manager<uint64_t>(1, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
     manager->generate_marks_for_ordered_crossover(n_alleles);
 
+    // Partitionate population
+    Population<uint64_t> ** population = (Population<uint64_t> **) std::malloc(part*sizeof(Population<uint64_t> *));
+    if(population == NULL) throw "Could not allocate populations";
+    uint64_t rate = n_individuals/part;
+    for(uint64_t i=0;i<part;i++){
+        // Assign chromosomes to population
+        population[i] = new Population<uint64_t>(rate, &ind[i*rate]);
+        population[i]->set_neighborhood_function(&all_together);
 
-    //Set population and put the manager to run
-    manager->set_populations(population, 0);
+        // Add the populations to the manager
+        manager->set_populations(population[i], i);
+    }
+
+    
+
+
+    // Put the manager to run
     manager->run(n_itera);
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
@@ -90,7 +105,7 @@ int main(int argc, char **av) {
 }
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera){
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every){
     
     int pNum = 0;
     while(pNum < argc){
@@ -101,6 +116,9 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera){
             fprintf(stdout, "OPTIONAL:\n");
             fprintf(stdout, "           -data       [Path to data]\n");
             fprintf(stdout, "           -itera      [Integer > 0] def: 10000\n");
+            fprintf(stdout, "           -indiv      [Integer > 0] def: 100\n");
+            fprintf(stdout, "           -part       [Integer > 0] def: 1\n");
+            fprintf(stdout, "           -mix        [Integer > 0] def: 10000/20\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
@@ -112,6 +130,15 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera){
         }
         if(strcmp(av[pNum], "-itera") == 0){
             *n_itera = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-indiv") == 0){
+            *n_individuals = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-part") == 0){
+            *part = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-mix") == 0){
+            *mix_every = (uint64_t) atoi(av[pNum+1]);
         }
         /*
         if(strcmp(av[pNum], "-pathfiles") == 0){

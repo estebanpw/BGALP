@@ -2,9 +2,10 @@
 
 
 template <class T>
-Manager<T>::Manager(uint64_t n_populations, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize){
+Manager<T>::Manager(uint64_t n_populations, uint64_t mix_every, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize){
     
     this->maximize = maximize;
+    this->mix_every = mix_every;
     this->n_populations = n_populations;
     this->population = (Population<T> **) std::malloc(n_populations*sizeof(Population<T> *));
     if(this->population == NULL) throw "Could not allocate population pointers";
@@ -91,6 +92,28 @@ void Manager<T>::run(uint64_t n_itera){
     
     // Run generations
     for(i=1;i<n_itera;i++){
+
+        if(i % this->mix_every == 0){
+            // Mix two populations randomly
+            uint64_t pop1 = (uint64_t) ((long double)this->n_populations)*this->u_d(this->uniform_generator);
+            uint64_t pop2 = pop1;
+            do{
+                pop2 = (uint64_t) ((long double)this->n_populations)*this->u_d(this->uniform_generator);
+                printf("eat my shorts %" PRIu64" %" PRIu64"\n", pop1, pop2);
+            }while(pop1 == pop2);
+
+            // Swap them pointers
+            uint64_t ptr1 = (uint64_t) this->population[pop1]->get_size()*this->u_d(this->uniform_generator);
+            uint64_t ptr2 = (uint64_t) this->population[pop2]->get_size()*this->u_d(this->uniform_generator);
+
+            Chromosome<T> * an_auxiliary_pointer = this->population[pop1]->get_individual_at(ptr1);
+            this->population[pop1]->set_individual_pointer_to(pop1, this->population[pop2]->get_individual_at(ptr2));
+            this->population[pop2]->set_individual_pointer_to(pop2, an_auxiliary_pointer);
+
+            fprintf(stdout, "\tMix took place between pool %" PRIu64" and %" PRIu64"\n", pop1, pop2);
+
+        }
+
         for(j=0;j<n_populations;j++){
 
             // Selection method here
@@ -139,7 +162,7 @@ void Manager<T>::run(uint64_t n_itera){
             
             //printf("Current best f: %.3Le, worst : %.3Le\n", *this->population[j]->get_best_individual()->get_fitness(), *this->population[j]->get_worst_individual()->get_fitness());
             
-            if(i % 1000 == 0){
+            if(i % (n_itera/20) == 0){
                 //  this->population[j]->print_all_fitness();
                 fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
                 //getchar();
@@ -161,13 +184,14 @@ void Manager<T>::select_tournament(Population<T> * p1, Population<T> * p2, Pair<
 
 template <class T>
 Manager<T>::~Manager(){
+    Chromosome<T> * ptr_chrom = this->population[0]->get_individual_at(0);
     for(uint64_t i=0;i<n_populations;i++){
         delete population[i];
     }
     if(this->marks != NULL) std::free(this->marks);
     std::free(population);
     std::free(pair);
-
+    std::free(ptr_chrom);
 }
 
 template class Manager<unsigned char>;

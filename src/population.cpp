@@ -40,8 +40,7 @@ void Population<T>::replace_best(Chromosome<T> * replacement){
 
 template <class T>
 Population<T>::~Population(){
-    if(this->individuals != NULL) std::free(this->individuals);
-    std::free(this->ptr_individuals);
+    if(this->individuals != NULL) std::free(this->ptr_individuals);
 }
 
 template <class T>

@@ -24,10 +24,9 @@ private:
     bool maximize;
     Chromosome<T> * replacement;
     //TODO parametrize the selection function as well
-
-protected:
     Population<T> ** population;
     uint64_t n_populations;
+    uint64_t mix_every;
     void * solution_info;
     void (*crossover_function)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m);
     void (*mutation_function)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p);
@@ -40,7 +39,7 @@ public:
     // For ordered crossover
     unsigned char * marks; 
 
-    Manager(uint64_t n_populations, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize);
+    Manager(uint64_t n_populations, uint64_t mix_every, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize);
     void set_populations(Population<T> * p, uint64_t index);
     void select_tournament(Population<T> * p1, Population<T> * p2, Pair<Chromosome<T>> * c_pair);
     void run(uint64_t n_itera);
