@@ -98,6 +98,7 @@ int main(int argc, char **av) {
     manager->run(n_itera);
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
+    manager->get_best_individual()->print_chromosome();
 
     std::free(tsp.dist);
     for(uint64_t i=0;i<tsp.n;i++){
