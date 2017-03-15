@@ -99,7 +99,6 @@ void Manager<T>::run(uint64_t n_itera){
             uint64_t pop2 = pop1;
             do{
                 pop2 = (uint64_t) ((long double)this->n_populations)*this->u_d(this->uniform_generator);
-                printf("eat my shorts %" PRIu64" %" PRIu64"\n", pop1, pop2);
             }while(pop1 == pop2);
 
             // Swap them pointers
@@ -184,14 +183,12 @@ void Manager<T>::select_tournament(Population<T> * p1, Population<T> * p2, Pair<
 
 template <class T>
 Manager<T>::~Manager(){
-    Chromosome<T> * ptr_chrom = this->population[0]->get_individual_at(0);
     for(uint64_t i=0;i<n_populations;i++){
         delete population[i];
     }
     if(this->marks != NULL) std::free(this->marks);
     std::free(population);
     std::free(pair);
-    std::free(ptr_chrom);
 }
 
 template class Manager<unsigned char>;

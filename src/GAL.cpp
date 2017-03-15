@@ -48,6 +48,7 @@ int main(int argc, char **av) {
 
     // Init arguments
     init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every);
+    mix_every = n_itera/mix_every;
 
     // Readstream to load data 
     Readstream * rs = new Readstream(tsp_lib, &reading_function_TSP, (void *) &tsp);
@@ -74,7 +75,7 @@ int main(int argc, char **av) {
     }
 
     // Add manager
-    Manager<uint64_t> * manager = new Manager<uint64_t>(1, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
+    Manager<uint64_t> * manager = new Manager<uint64_t>(part, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
     manager->generate_marks_for_ordered_crossover(n_alleles);
 
     // Partitionate population
@@ -98,8 +99,16 @@ int main(int argc, char **av) {
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
 
-    
+    std::free(tsp.dist);
+    for(uint64_t i=0;i<tsp.n;i++){
+        std::free(tsp.dist[i]);
+    }
+
+
     delete manager;
+    delete rs;
+    std::free(ind);
+    std::free(population);
 
     return 0;
 }
