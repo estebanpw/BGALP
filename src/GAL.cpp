@@ -101,6 +101,10 @@ int main(int argc, char **av) {
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
     manager->get_best_individual()->print_chromosome();
 
+    // Get 5 best solutions 
+    std::vector<Chromo_TSP<uint64_t> *> * best_chromos = manager->retrieve_k_best_solutions((uint64_t)5);
+
+
     // Local search 
     Chromo_TSP<uint64_t> * aux = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     for(uint64_t i=0;i<n_alleles;i++){

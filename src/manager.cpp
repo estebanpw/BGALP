@@ -182,6 +182,37 @@ void Manager<T>::select_tournament(Population<T> * p1, Population<T> * p2, Pair<
 }
 
 template <class T>
+std::vector<Chromosome<T> *> * Manager<T>::retrieve_k_best_solutions(uint64_t k){
+    typename std::vector<Chromosome<T> *> * v = new std::vector<Chromosome<T> *>(k);
+    uint64_t j, p;
+    typename std::vector<Chromosome<T> *>::iterator it, it_aux;
+    long double curr_fitness;
+    for(uint64_t i=0;i<n_populations;i++){
+        for(j=0;j<this->population[i]->get_size();j++){
+            curr_fitness = *this->population[i]->get_individual_at(j)->get_fitness();
+            p = 0;
+            for(it = v->begin(); it != v->end(); it++){
+                
+                if(this->maximize && curr_fitness > *(*it)->get_fitness()){
+                    
+                    it_aux = v->emplace(it, this->population[i]->get_individual_at(j));
+                    if(v->size() == k) v->erase(it_aux);
+                }
+                if(!this->maximize && curr_fitness < *(*it)->get_fitness()){
+                    
+                    it_aux = v->emplace(it, this->population[i]->get_individual_at(j));
+                    if(v->size() == k) v->erase(it_aux);
+                }
+
+                p++;
+            }
+        }
+    }
+    return v;
+}
+
+
+template <class T>
 Manager<T>::~Manager(){
     for(uint64_t i=0;i<n_populations;i++){
         delete population[i];
