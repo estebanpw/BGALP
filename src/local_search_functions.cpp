@@ -2,43 +2,50 @@
 
 
 
-void 2optSwap(Chromosome<uint64_t> * route, Chromosome<uint64_t> * 2opt_chrom, uint64_t i, uint64_t k){
+void _2optSwap(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom, uint64_t i, uint64_t k){
         
     // Take route 1 to i and add in order
     uint64_t t, backward_pos;
     for(t=0;t<i;t++){
-        2opt_chrom->set_allele(t, route->get_allele(t));
+        two_opt_chrom->set_allele(t, route->get_allele(t));
     }
     // Take route i to k and add reversed
-    for(t=i;t<k;t++){
-        backward_pos = k-t;
-        2opt_chrom->set_allele(t, route->get_allele(backward_pos));
+    for(t=i;t<k+1;t++){
+        backward_pos = k-(t-i);
+        two_opt_chrom->set_allele(t, route->get_allele(backward_pos));
     }
     // Take route k to end and add in order
-    for(t=k;t<route->get_length();t++){
-        2opt_chrom->set_allele(t, route->get_allele(t));
+    for(t=k+1;t<route->get_length();t++){
+        two_opt_chrom->set_allele(t, route->get_allele(t));
     }
-    2opt_chrom->compute_fitness();
-
 }
 
-void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * 2opt_chrom, Chromosome<uint64_t> * aux){
+void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom, void * solution_info){
 
     uint64_t i, k;
-    long double prev_fitness = LDBL_MAX, best_distance;
-    while(2opt_chrom->get_fitness() < prev_fitness){
-        prev_fitness = 2opt_chrom->get_fitness();
-
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) solution_info;
+    Chromosome<uint64_t> * aux;
+    long double best_distance = LDBL_MAX;
+    while(*route->get_fitness() < best_distance){
+        
         start_again:
 
-        best_distance = 2opt_chrom->get_fitness();
+        best_distance = *route->get_fitness();
         for (i = 0; i < route->get_length() - 1; i++) {
             for (k = i + 1; k < route->get_length(); k++) {
-                new_route = 2optSwap(existing_route, i, k)
-                new_distance = calculateTotalDistance(new_route)
-                if (new_distance < best_distance) {
-                    existing_route = new_route
-                    goto start_again
+                _2optSwap(route, two_opt_chrom, i, k);
+                two_opt_chrom->compute_fitness(tsp);
+                if (*two_opt_chrom->get_fitness() < best_distance) {
+                    aux = route;
+                    route = two_opt_chrom;
+                    two_opt_chrom = aux;
+                    /*
+                    fprintf(stdout, "Improved at %" PRIu64", %" PRIu64"\n", i, k);
+                    route->print_chromosome();
+                    getchar();
+                    */
+                    
+                    goto start_again;
                 }
             }
         }

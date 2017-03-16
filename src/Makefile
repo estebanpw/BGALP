@@ -6,7 +6,7 @@ BIN=../bin
 all: GAL
 
 GAL: GAL.cpp
-	$(CXX) $(CFLAGS) mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm chromosome.cpp population.cpp manager.cpp crossover_functions.cpp GAL.cpp -lpthread -o $(BIN)/GAL
+	$(CXX) $(CFLAGS) local_search_functions.cpp mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm chromosome.cpp population.cpp manager.cpp crossover_functions.cpp GAL.cpp -lpthread -o $(BIN)/GAL
 
 clean:
 	rm -rf $(BIN)/GAL

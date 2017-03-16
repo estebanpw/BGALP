@@ -15,6 +15,7 @@
 #include "common_functions.h"
 #include "mutation_functions.h"
 #include "readstream.h"
+#include "local_search_functions.h"
 
 #define THE_MAX 1000
 
@@ -99,6 +100,18 @@ int main(int argc, char **av) {
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
     manager->get_best_individual()->print_chromosome();
+
+    // Local search 
+    Chromo_TSP<uint64_t> * aux = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    for(uint64_t i=0;i<n_alleles;i++){
+        aux->set_allele(i, manager->get_best_individual()->get_allele(i));
+    }
+
+    run_2opt(manager->get_best_individual(), aux, (void *) &tsp);
+    fprintf(stdout, "After 2-opt\n");
+    manager->get_best_individual()->print_chromosome();
+
+    // Deallocating
 
     std::free(tsp.dist);
     for(uint64_t i=0;i<tsp.n;i++){
