@@ -89,11 +89,13 @@ void Manager<T>::run(uint64_t n_itera){
 
 
     uint64_t replace_pos, k, second_worst;
+    uint64_t print_time = (n_itera/20 != 0) ? (n_itera/20) : (1);
     
     // Run generations
     for(i=1;i<n_itera;i++){
 
-        if(i % this->mix_every == 0){
+        if(this->n_populations > 1 && i % this->mix_every == 0){
+            printf("mix is %" PRIu64"\n", this->mix_every);
             // Mix two populations randomly
             uint64_t pop1 = (uint64_t) ((long double)this->n_populations)*this->u_d(this->uniform_generator);
             uint64_t pop2 = pop1;
@@ -161,12 +163,11 @@ void Manager<T>::run(uint64_t n_itera){
             
             //printf("Current best f: %.3Le, worst : %.3Le\n", *this->population[j]->get_best_individual()->get_fitness(), *this->population[j]->get_worst_individual()->get_fitness());
             
-            if(i % (n_itera/20) == 0){
+            if(i % print_time == 0){
                 //  this->population[j]->print_all_fitness();
                 fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
                 //getchar();
             } 
-            
             
         }
     }
@@ -182,29 +183,30 @@ void Manager<T>::select_tournament(Population<T> * p1, Population<T> * p2, Pair<
 }
 
 template <class T>
-std::vector<Chromosome<T> *> * Manager<T>::retrieve_k_best_solutions(uint64_t k){
-    typename std::vector<Chromosome<T> *> * v = new std::vector<Chromosome<T> *>(k);
-    uint64_t j, p;
-    typename std::vector<Chromosome<T> *>::iterator it, it_aux;
+Chromosome<T> ** Manager<T>::retrieve_k_best_solutions(uint64_t k){
+    
+    Chromosome<T> ** v = (Chromosome<T> **) std::calloc(k, sizeof(Chromosome<T> *));
+    if(v == NULL) throw "Could not allocate best solutions";
+
+    uint64_t j, z;
     long double curr_fitness;
-    for(uint64_t i=0;i<n_populations;i++){
+    for(uint64_t i=0;i<this->n_populations;i++){
         for(j=0;j<this->population[i]->get_size();j++){
             curr_fitness = *this->population[i]->get_individual_at(j)->get_fitness();
-            p = 0;
-            for(it = v->begin(); it != v->end(); it++){
-                
-                if(this->maximize && curr_fitness > *(*it)->get_fitness()){
-                    
-                    it_aux = v->emplace(it, this->population[i]->get_individual_at(j));
-                    if(v->size() == k) v->erase(it_aux);
-                }
-                if(!this->maximize && curr_fitness < *(*it)->get_fitness()){
-                    
-                    it_aux = v->emplace(it, this->population[i]->get_individual_at(j));
-                    if(v->size() == k) v->erase(it_aux);
-                }
 
-                p++;
+            printf("i %" PRIu64", j %" PRIu64"\n", i, j);
+            for(z = 0; z < k; z++){
+                
+                if(v[z] != NULL){
+                    if(this->maximize && curr_fitness > *v[z]->get_fitness()){
+                        v[z] = this->population[i]->get_individual_at(j);
+                    }
+                    if(!this->maximize && curr_fitness < *v[z]->get_fitness()){
+                        v[z] = this->population[i]->get_individual_at(j);
+                    }
+                }else{
+                    v[z] = this->population[i]->get_individual_at(j);
+                }
             }
         }
     }

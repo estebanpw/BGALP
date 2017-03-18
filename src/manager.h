@@ -46,7 +46,7 @@ public:
     void generate_marks_for_ordered_crossover(uint64_t n_alleles);
     Chromosome<T> * get_best_individual();
     void update_fitnesses(uint64_t curr_population, uint64_t curr_indv);
-    std::vector<Chromosome<T> *> * retrieve_k_best_solutions(uint64_t k);
+    Chromosome<T> ** retrieve_k_best_solutions(uint64_t k);
     ~Manager();
 
 };

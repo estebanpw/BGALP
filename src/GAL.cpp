@@ -49,7 +49,7 @@ int main(int argc, char **av) {
 
     // Init arguments
     init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every);
-    mix_every = n_itera/mix_every;
+    mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
     // Readstream to load data 
     Readstream * rs = new Readstream(tsp_lib, &reading_function_TSP, (void *) &tsp);
@@ -79,6 +79,8 @@ int main(int argc, char **av) {
     Manager<uint64_t> * manager = new Manager<uint64_t>(part, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
     manager->generate_marks_for_ordered_crossover(n_alleles);
 
+
+
     // Partitionate population
     Population<uint64_t> ** population = (Population<uint64_t> **) std::malloc(part*sizeof(Population<uint64_t> *));
     if(population == NULL) throw "Could not allocate populations";
@@ -94,23 +96,28 @@ int main(int argc, char **av) {
 
     
 
-
     // Put the manager to run
     manager->run(n_itera);
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
     manager->get_best_individual()->print_chromosome();
+    getchar();
 
-    // Get 5 best solutions 
-    std::vector<Chromo_TSP<uint64_t> *> * best_chromos = manager->retrieve_k_best_solutions((uint64_t)5);
-
-
+    // Get k best solutions
+    uint64_t n_best_sols = 5; 
+    Chromo_TSP<uint64_t> ** best_chromos = (Chromo_TSP<uint64_t> **) manager->retrieve_k_best_solutions(n_best_sols);
+    for(uint64_t i=0;i<n_best_sols;i++){
+        best_chromos[i]->print_chromosome();
+    }
+    getchar();
+    
     // Local search 
     Chromo_TSP<uint64_t> * aux = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     for(uint64_t i=0;i<n_alleles;i++){
         aux->set_allele(i, manager->get_best_individual()->get_allele(i));
     }
 
+    fprintf(stdout, "Running 2-opt\n");
     run_2opt(manager->get_best_individual(), aux, (void *) &tsp);
     fprintf(stdout, "After 2-opt\n");
     manager->get_best_individual()->print_chromosome();
