@@ -192,20 +192,23 @@ Chromosome<T> ** Manager<T>::retrieve_k_best_solutions(uint64_t k){
     long double curr_fitness;
     for(uint64_t i=0;i<this->n_populations;i++){
         for(j=0;j<this->population[i]->get_size();j++){
+
             curr_fitness = *this->population[i]->get_individual_at(j)->get_fitness();
 
-            printf("i %" PRIu64", j %" PRIu64"\n", i, j);
             for(z = 0; z < k; z++){
-                
+
                 if(v[z] != NULL){
                     if(this->maximize && curr_fitness > *v[z]->get_fitness()){
                         v[z] = this->population[i]->get_individual_at(j);
+                        break;
                     }
                     if(!this->maximize && curr_fitness < *v[z]->get_fitness()){
                         v[z] = this->population[i]->get_individual_at(j);
+                        break;
                     }
                 }else{
                     v[z] = this->population[i]->get_individual_at(j);
+                    break;
                 }
             }
         }

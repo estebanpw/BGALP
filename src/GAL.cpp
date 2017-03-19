@@ -104,36 +104,66 @@ int main(int argc, char **av) {
     getchar();
 
     // Get k best solutions
+    /*
     uint64_t n_best_sols = 5; 
     Chromo_TSP<uint64_t> ** best_chromos = (Chromo_TSP<uint64_t> **) manager->retrieve_k_best_solutions(n_best_sols);
     for(uint64_t i=0;i<n_best_sols;i++){
         best_chromos[i]->print_chromosome();
     }
     getchar();
+    */
+
+    // Get k random solutions
+    uint64_t random_sols = 2;
+    std::cout << "Random solutions: " << std::endl;
+    for(uint64_t i=0;i<random_sols;i++){
+        ind[i].print_chromosome();
+    }
+    getchar();
     
     // Local search 
-    Chromo_TSP<uint64_t> * aux = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     for(uint64_t i=0;i<n_alleles;i++){
-        aux->set_allele(i, manager->get_best_individual()->get_allele(i));
+        aux1->set_allele(i, ind[0].get_allele(i));
+        aux2->set_allele(i, ind[1].get_allele(i));
     }
 
-    fprintf(stdout, "Running 2-opt\n");
-    run_2opt(manager->get_best_individual(), aux, (void *) &tsp);
-    fprintf(stdout, "After 2-opt\n");
-    manager->get_best_individual()->print_chromosome();
+    /*
+    fprintf(stdout, "Running 2-opt on 1\n");
+    run_2opt(&ind[0], aux1, (void *) &tsp);
+    fprintf(stdout, "Running 2-opt on 2\n");
+    run_2opt(&ind[1], aux2, (void *) &tsp);
+    */
+
+    std::cout << "Building edges table: " << std::endl;
+    Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
+    if(e_table == NULL) throw "Could not allocate edges table";
+    memory_pool * mp = new memory_pool(POOL_SIZE);
+
+    std::cout << "(FILLING)" << std::endl;
+    fill_edge_table(aux1, e_table, mp);
+    fill_edge_table(aux2, e_table, mp);
+
+    print_edge_tables(n_alleles, e_table);
+
+
 
     // Deallocating
 
-    std::free(tsp.dist);
+    
     for(uint64_t i=0;i<tsp.n;i++){
         std::free(tsp.dist[i]);
     }
+    std::free(tsp.dist);
 
 
     delete manager;
+    delete mp;
     delete rs;
     std::free(ind);
     std::free(population);
+    std::free(e_table);
 
     return 0;
 }

@@ -31,7 +31,7 @@ Chromosome<T>::~Chromosome(){
 template <class T>
 void Chromosome<T>::print_chromosome(){
     std::cout << "\t@(" << this->position.x <<  ", " << this->position.y << ", " << this->position.z << ") L: " << this->length << std::endl;
-    std::cout << "\tF: " << this->fitness << std::endl;
+    std::cout << "\tF: " << this->fitness << " at " << this << std::endl;
     for(uint64_t i=0;i<this->length;i++){
         std::cout << this->chromosome[i] << ", ";
     }

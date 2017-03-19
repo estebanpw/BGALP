@@ -30,5 +30,24 @@ void random_shuffle_templated(uint64_t n_elements, T * vector, uint64_t seed, st
     }
 
 }
+template <class T>
+void print_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table){
+    Edge_T<T> * et_ptr;
+    for(uint64_t i=0;i<n_nodes;i++){
+        if(e_table[i] != NULL){
+
+            std::cout << i << ": ";
+            et_ptr = e_table[i]->next;
+            while(et_ptr != NULL){
+                std::cout << et_ptr->node;
+                if(et_ptr->common == COMMON) std::cout << "*";
+                std::cout << ", ";
+                et_ptr = et_ptr->next;
+            }
+            std::cout << std::endl;
+        }
+    }
+}
 
 template void random_shuffle_templated<uint64_t>(uint64_t n_elements, uint64_t * vector, uint64_t seed, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
+template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);

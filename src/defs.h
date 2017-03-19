@@ -7,6 +7,9 @@
 #define MAX_PATH 2048
 #define MAX_LINE 2048
 
+#define UNCOMMON 0
+#define COMMON 1
+
 enum INITIALIZER { RANDOM, CLEAR };
 
 template <typename T>
@@ -38,4 +41,14 @@ struct Sol_subsetsum{
 struct Sol_TSP_matrix{
     long double ** dist;
     uint64_t n;
+};
+
+// Struct for edge tables 
+template <typename T>
+struct Edge_T{
+    uint64_t node;
+    //Chromosome<T> * origin_1;
+    //Chromosome<T> * origin_2;
+    unsigned char common;
+    struct Edge_T * next;
 };
