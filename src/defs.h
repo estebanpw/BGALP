@@ -47,8 +47,22 @@ struct Sol_TSP_matrix{
 template <typename T>
 struct Edge_T{
     uint64_t node;
-    //Chromosome<T> * origin_1;
-    //Chromosome<T> * origin_2;
     unsigned char common;
     struct Edge_T * next;
+    int64_t partition;
+    uint64_t degree;
+};
+
+template <typename T>
+struct List{
+    struct Edge_T<T> * v;
+    struct List * next;
+    struct List * prev;
+};
+
+template <typename T>
+struct Part_list{
+    struct List<T> * last_ptr;
+    struct List<T> * LIST;
+    struct List<T> ** const_access;
 };

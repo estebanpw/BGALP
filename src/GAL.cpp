@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <queue>
 #include <time.h>
 #include <random>
 #include <iostream>
@@ -141,13 +142,24 @@ int main(int argc, char **av) {
     if(e_table == NULL) throw "Could not allocate edges table";
     memory_pool * mp = new memory_pool(POOL_SIZE);
 
-    std::cout << "(FILLING)" << std::endl;
+    // Fill edge table for two random solutions
     fill_edge_table(aux1, e_table, mp);
     fill_edge_table(aux2, e_table, mp);
-
+    // Calculate degree
+    generate_degree(n_alleles, e_table);
     print_edge_tables(n_alleles, e_table);
 
+    // Locate partitions
+    std::queue<uint64_t> FIFO_queue;
+    uint64_t node_id = get_highest_node_unpartitioned(n_alleles, e_table);
+    find_connected_components(node_id, 0, e_table, &FIFO_queue);
+    std::cout << "First partition " << std::endl;
+    print_edge_tables(n_alleles, e_table);
 
+    node_id = get_highest_node_unpartitioned(n_alleles, e_table);
+    find_connected_components(node_id, 1, e_table, &FIFO_queue);
+    std::cout << "Second partition " << std::endl;
+    print_edge_tables(n_alleles, e_table);
 
     // Deallocating
 

@@ -111,6 +111,7 @@ void Chromo_TSP<T>::compute_fitness(void * solution_info){
     for(uint64_t i=1; i<this->length; i++){
         path_sum +=  tsp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
     }
+    path_sum += tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]]; //Return to initial node
     this->fitness = path_sum;
     
     
