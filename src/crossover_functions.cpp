@@ -130,30 +130,40 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
     }
     // We have to add an edge between first and last 
     
+    bool was_found = false;
     Edge_T<T> * et_ptr;
     et_ptr = e_table[*a->get_allele(0)]->next;
     while(et_ptr != NULL){
+        if(et_ptr->node == *a->get_allele(a->get_length()-1)){ et_ptr->common = COMMON; was_found = true; break; }
         if(et_ptr->next == NULL) break;
         et_ptr = et_ptr->next;
     }
     // Add ending edge
-    et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
-    et_ptr->next->node = *a->get_allele(a->get_length()-1);
-    et_ptr->next->common = UNCOMMON;
-    et_ptr->next->next = NULL;
+    if(!was_found){
+        et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+        et_ptr->next->node = *a->get_allele(a->get_length()-1);
+        et_ptr->next->common = UNCOMMON;
+        et_ptr->next->next = NULL;
+        printf("added (1) %" PRIu64"\n", et_ptr->next->node);
+    }
     
 
-    
+    was_found = false;
     et_ptr = e_table[*a->get_allele(a->get_length()-1)]->next;
     while(et_ptr != NULL){
+        if(et_ptr->node == *a->get_allele(0)){ et_ptr->common = COMMON; was_found = true; break; }
         if(et_ptr->next == NULL) break;
         et_ptr = et_ptr->next;
     }
     // Add ending edge
-    et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
-    et_ptr->next->node = *a->get_allele(0);
-    et_ptr->next->common = UNCOMMON;
-    et_ptr->next->next = NULL;
+    if(!was_found){
+        et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+        et_ptr->next->node = *a->get_allele(0);
+        et_ptr->next->common = UNCOMMON;
+        et_ptr->next->next = NULL;
+        printf("added (2) %" PRIu64"\n", et_ptr->next->node);
+    }
+    
     
 }
 
@@ -222,8 +232,48 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
             }
         }
     }
-    
+}
 
+template <class T>
+Pair<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
+
+    Edge_T<T> * surrogate_ptr_1 = NULL, * surrogate_ptr_2 = NULL;
+    Pair<Edge_T<T>> surrogates; surrogates._e1 = NULL; surrogates._e2 = NULL;
+    int64_t surrogate_1_belongs_to, surrogate_2_belongs_to;
+    for(uint64_t i=0;i<n_nodes;i++){
+        if(e_table[i] != NULL){
+            if(e_table[i]->degree == 2 && e_table[i]->partition == -1){
+                // Its a surrogate edge 
+
+                surrogate_1_belongs_to = e_table[e_table[i]->next->node]->partition;
+                surrogate_2_belongs_to = e_table[e_table[i]->next->next->node]->partition;
+                
+                if(surrogate_1_belongs_to >= 0 && surrogate_2_belongs_to >= 0){
+                    // If both are assigned to a partition 
+                    if(surrogate_1_belongs_to != surrogate_2_belongs_to){
+                        // They connect different partitions 
+
+                        // Check if we already had one surrogate 
+                        if(surrogate_ptr_1 == NULL){
+                            surrogate_ptr_1 = e_table[i];
+                        }
+                        else if(surrogate_ptr_2 == NULL){
+                            surrogate_ptr_2 = e_table[i];
+                            // Now we already have two surrogate edges
+                            surrogates._e1 = surrogate_ptr_1;
+                            surrogates._e2 = surrogate_ptr_2;
+                            return surrogates;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #ifdef VERBOSE
+    std::cout << "Found partitioning surrogate edges at " << surrogate_ptr_1->node << " and " << surrogate_ptr_2->node << std::endl;
+    #endif
+    return surrogates;
 }
 
 
@@ -360,4 +410,5 @@ template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_ta
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
+template Pair<Edge_T<uint64_t>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);

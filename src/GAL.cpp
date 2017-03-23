@@ -161,6 +161,10 @@ int main(int argc, char **av) {
     std::cout << "Second partition " << std::endl;
     print_edge_tables(n_alleles, e_table);
 
+    // Find if partition crossover is feasible
+    Pair<Edge_T<uint64_t>> px = find_surrogate_edge_that_partitionates(n_alleles, e_table);
+
+
     // Deallocating
 
     
