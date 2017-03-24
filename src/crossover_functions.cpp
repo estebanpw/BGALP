@@ -235,174 +235,139 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
 }
 
 template <class T>
-Pair<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
+Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 
-    Edge_T<T> * surrogate_ptr_1 = NULL, * surrogate_ptr_2 = NULL;
-    Pair<Edge_T<T>> surrogates; surrogates._e1 = NULL; surrogates._e2 = NULL;
-    int64_t surrogate_1_belongs_to, surrogate_2_belongs_to;
+    Edge_T<T> * ptr, * master_ptr, * previous;
+    Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
+
+    // Extend in both directions until one node with degree > 2 is found
+    master_ptr = e_table[i];
+    previous = master_ptr;
+    ptr = master_ptr->next;
+    while(master_ptr->degree == 2){
+        printf("Can i get stuck here? %" PRIu64"\n", ptr->node);
+        previous = master_ptr;
+        // Traverse in one direction
+        if(ptr->node != previous->node){
+            master_ptr = e_table[ptr->node];
+            ptr = master_ptr->next;
+        }else{
+            // In case the first one is the previous one
+            master_ptr = e_table[ptr->next->node];
+            ptr = master_ptr->next;
+        }
+    }
+    
+    // The surrogate should be in previous (since master_ptr is no longer of degree 2)
+    surrogate._e1 = previous;
+    // Same path but backwards
+    master_ptr = e_table[i];
+    previous = master_ptr;
+    ptr = master_ptr->next->next; // This is the only difference!!
+    while(master_ptr->degree == 2){
+        
+        previous = master_ptr;
+        // Traverse in one direction
+        if(ptr->node != previous->node){
+            master_ptr = e_table[ptr->node];
+            ptr = master_ptr->next;
+        }else{
+            // In case the first one is the previous one
+            master_ptr = e_table[ptr->next->node];
+            ptr = master_ptr->next;
+        }
+    }
+    // The other end of the surrogate is in previous
+    surrogate._e2 = previous;
+
+    return surrogate;
+}
+
+template <class T>
+Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
+
+    Quartet<T> surrogates;
+    Pair<Edge_T<T>> p1, p2;
+    
+    int64_t up_surrogate_1, down_surrogate_1, up_surrogate_2, down_surrogate_2;
+    uint64_t j;
     for(uint64_t i=0;i<n_nodes;i++){
         if(e_table[i] != NULL){
             if(e_table[i]->degree == 2 && e_table[i]->partition == -1){
                 // Its a surrogate edge 
 
-                surrogate_1_belongs_to = e_table[e_table[i]->next->node]->partition;
-                surrogate_2_belongs_to = e_table[e_table[i]->next->next->node]->partition;
-                
-                if(surrogate_1_belongs_to >= 0 && surrogate_2_belongs_to >= 0){
-                    // If both are assigned to a partition 
-                    if(surrogate_1_belongs_to != surrogate_2_belongs_to){
-                        // They connect different partitions 
+                p1 = replace_surrogate_by_one(e_table, i);
 
-                        // Check if we already had one surrogate 
-                        if(surrogate_ptr_1 == NULL){
-                            surrogate_ptr_1 = e_table[i];
-                        }
-                        else if(surrogate_ptr_2 == NULL){
-                            surrogate_ptr_2 = e_table[i];
-                            // Now we already have two surrogate edges
-                            surrogates._e1 = surrogate_ptr_1;
-                            surrogates._e2 = surrogate_ptr_2;
-                            return surrogates;
+                up_surrogate_1 = down_surrogate_1 = -1;
+
+                if(e_table[p1._e1->next->node]->degree != 2 && e_table[p1._e1->next->node]->partition != - 1){
+                    // Connects to a partition
+                    up_surrogate_1 = p1._e1->next->node;
+                }
+                if(e_table[p1._e1->next->next->node]->degree != 2 && e_table[p1._e1->next->next->node]->partition != - 1){
+                    // Connects to a partition 
+                    up_surrogate_1 = p1._e1->next->node;
+                }
+
+                if(e_table[p1._e2->next->node]->degree != 2 && e_table[p1._e2->next->node]->partition != - 1){
+                    // Connects to a partition
+                    down_surrogate_1 = p1._e2->next->node;
+                }
+                if(e_table[p1._e2->next->next->node]->degree != 2 && e_table[p1._e2->next->next->node]->partition != - 1){
+                    // Connects to a partition 
+                    down_surrogate_1 = p1._e2->next->node;
+                }
+                // We have in up_surrogate_1 and down_surrogate_1 the node IDs that connect different partitions
+
+                if(up_surrogate_1 != -1 && down_surrogate_1 != -1){
+                    for(j=i+1;j<n_nodes;j++){
+                        if(e_table[j] != NULL){
+                            if(e_table[j]->degree == 2 && e_table[j]->partition == -1){
+                                p2 = replace_surrogate_by_one(e_table, j);
+
+                                // At this point we are building over p1, p2 all combinations of surrogated edges
+                                // We should halt at first two surrogates that connect two partitions
+
+                                up_surrogate_2 = down_surrogate_2 = -1;
+
+                                if(e_table[p2._e1->next->node]->degree != 2 && e_table[p2._e1->next->node]->partition != - 1){
+                                    // Connects to a partition
+                                    up_surrogate_2 = p2._e1->next->node;
+                                }
+                                if(e_table[p2._e1->next->next->node]->degree != 2 && e_table[p2._e1->next->next->node]->partition != - 1){
+                                    // Connects to a partition 
+                                    up_surrogate_2 = p2._e1->next->node;
+                                }
+
+                                if(e_table[p2._e2->next->node]->degree != 2 && e_table[p2._e2->next->node]->partition != - 1){
+                                    // Connects to a partition
+                                    down_surrogate_2 = p2._e2->next->node;
+                                }
+                                if(e_table[p2._e2->next->next->node]->degree != 2 && e_table[p2._e2->next->next->node]->partition != - 1){
+                                    // Connects to a partition 
+                                    down_surrogate_2 = p2._e2->next->node;
+                                }
+
+                                if(up_surrogate_2 != -1 && down_surrogate_2 != -1){
+                                    // Final check, are they connecting the same partitions?
+                                    std::cout << "PX might be feasible: " << std::endl;
+                                    std::cout << "SG(1) = " << up_surrogate_1 << ", " << down_surrogate_1 << std::endl;
+                                    std::cout << "SG(2) = " << up_surrogate_2 << ", " << down_surrogate_2 << std::endl;
+                                }
+                                
+                            }
                         }
                     }
                 }
+                                 
             }
         }
     }
 
-    #ifdef VERBOSE
-    std::cout << "Found partitioning surrogate edges at " << surrogate_ptr_1->node << " and " << surrogate_ptr_2->node << std::endl;
-    #endif
     return surrogates;
 }
 
 
-/*
-template <class T>
-Part_list<T> * generate_lists_from_G(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp){
-
-    // Traverse the edge table 
-    // Add those edges with degree 2 at the head, and those with degree > 2 at the end
-    Edge_T<T> * et_ptr;
-    List<T> * LIST1 = NULL;
-    List<T> * head_ptr = NULL, * last_ptr = NULL;
-    Part_list<T> * part_list = (Part_list<T> *) mp->request_bytes(sizeof(Part_list<T>));
-    part_list->const_access = (List<T> **) mp->request_bytes(n_nodes * sizeof(List<T> *)); // To access in constant time
-
-    uint64_t degree;
-    for(uint64_t i=0;i<n_nodes;i++){
-
-        if(e_table[i] != NULL){
-            degree = 0;
-            et_ptr = e_table[i]->next;
-            while(et_ptr != NULL){
-                if(et_ptr->common != COMMON) degree++;
-                et_ptr = et_ptr->next;
-            }
-
-
-            if(degree > 2){
-                // Add at the end of the list
-                if(last_ptr == NULL){
-                    last_ptr = (List<T> *) mp->request_bytes(sizeof(List<T>));
-                    last_ptr->v = e_table[i];
-                    last_ptr->next = NULL;
-                    last_ptr->prev = NULL;
-                    LIST1 = last_ptr;
-                    
-                }else{
-                    last_ptr->next = (List<T> *) mp->request_bytes(sizeof(List<T>));
-                    last_ptr->next->v = e_table[i];
-                    last_ptr->next->next = NULL;
-                    last_ptr->next->prev = last_ptr;
-                    last_ptr = last_ptr->next;
-                    
-                }
-                part_list->last_ptr = last_ptr;
-                last_ptr->v->degree = degree;
-                part_list->const_access[i] = last_ptr;
-            }else{
-                // Add at the head
-                head_ptr = (List<T> *) mp->request_bytes(sizeof(List<T>));
-                head_ptr->v = e_table[i];
-                head_ptr->next = LIST1;
-                head_ptr->prev = NULL;
-                if(LIST1 != NULL) LIST1->prev = head_ptr;
-                LIST1 = head_ptr;
-                // To have the first last reference
-                if(last_ptr == NULL) last_ptr = head_ptr;
-                head_ptr->v->degree = degree;
-                part_list->const_access[i] = head_ptr;
-            }
-        }    
-    }
-    part_list->LIST = LIST1;
-    return part_list;
-}
-*/
-
-/*
-template <class T>
-Part_list<T> * locate_partitions_in_G(uint64_t n_nodes, Edge_T<T> ** e_table, Part_list<T> * part_list, memory_pool * mp){
-    List<T> * C = NULL;
-    List<T> * I = part_list->last_ptr; // Initialize i to last 
-    uint64_t partitions = 0;
-
-    // Find first with degree > 2
-    C = part_list->LIST;
-    while(C != NULL){
-        if(C->v->degree > 2) break;
-        C = C->next;
-    }
-    // Assign to first partition
-    C->v->partition = partitions++;
-
-    
-
-    // Swap vertex C with LIST1(i)
-    List<T> aux; List<T> * aux_ptr = C;
-    aux.v = C->v;
-    aux.next = C->next;
-    aux.prev = C->prev;
-
-    // Update pointers in const_access
-    part_list[C->v->node] = I;
-    part_list[I->v->node] = aux_ptr;
-
-    C->v = I->v; C->next = I->next; C->prev = I->prev;
-    I->v = aux.v; I->next = aux.next; I->prev = aux.prev;
-
-
-    // Decrement i 
-    I = I->prev;
-
-    // Put connected vertices from C in FIFO
-    List<T> * FIFO = NULL;
-    List<T> * last_in_FIFO = FIFO;
-    Edge_T<T> * add_connected = C->v->next;
-    while(add_connected != NULL){
-        
-        if(add_connected->common == UNCOMMON && e_table[add_connected->node]->partition == -1){
-            if(FIFO == NULL){
-                // Its the fist one
-                last_in_FIFO = (List<T> *) mp->request_bytes(sizeof(List<T>));
-                last_in_FIFO->v = add_connected;
-                last_in_FIFO->prev = NULL;
-                last_in_FIFO->next = NULL;
-            }else{
-                last_in_FIFO->next = (List<T> *) mp->request_bytes(sizeof(List<T>));
-                last_in_FIFO->next->v = add_connected;
-                last_in_FIFO->next->prev = last_in_FIFO;
-                last_in_FIFO->next->next = NULL;
-                last_in_FIFO = last_in_FIFO->next;
-            }
-        }
-        
-        add_connected = add_connected->next;
-    }
-
-}
-*/
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
 template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);
@@ -410,5 +375,6 @@ template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_ta
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
-template Pair<Edge_T<uint64_t>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template Quartet<uint64_t> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);

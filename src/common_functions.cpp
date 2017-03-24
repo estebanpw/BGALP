@@ -50,5 +50,14 @@ void print_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table){
     std::cout << "# ---------------" << std::endl;
 }
 
+template <class T>
+bool find_in_vector(std::vector<T> * v, T key){
+    for(typename std::vector<T>::iterator it = v->begin() ; it != v->end(); ++it){
+        if(*it == key) return true;
+    }
+    return false;
+}
+
 template void random_shuffle_templated<uint64_t>(uint64_t n_elements, uint64_t * vector, uint64_t seed, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
 template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);

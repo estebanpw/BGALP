@@ -29,7 +29,7 @@ template <class T>
 void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<T> ** e_table, std::queue<T> * FIFO_queue);
 
 template <class T>
-Pair<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table);
+Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table);
 
 /*
 template <class T>

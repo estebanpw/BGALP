@@ -24,6 +24,14 @@ struct Pair{
     T * _e2;
 };
 
+template <typename T>
+struct Quartet{
+    T * _e1;
+    T * _e2;
+    T * _e3;
+    T * _e4;
+};
+
 struct Position{
     int64_t x;
     int64_t y;
@@ -51,6 +59,12 @@ struct Edge_T{
     struct Edge_T * next;
     int64_t partition;
     uint64_t degree;
+};
+
+template <typename T>
+struct Surrogate_Edge_T{
+    Edge_T<T> * left;
+    Edge_T<T> * right;
 };
 
 template <typename T>
