@@ -195,7 +195,7 @@ int main(int argc, char **av) {
     print_edge_tables(n_alleles, e_table);
 
     // Find if partition crossover is feasible
-    Quartet<uint64_t> px = find_surrogate_edge_that_partitionates(n_alleles, e_table);
+    Quartet<Edge_T<uint64_t>> px = find_surrogate_edge_that_partitionates(n_alleles, e_table);
 
 
     // Deallocating

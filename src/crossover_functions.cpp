@@ -172,15 +172,19 @@ template <class T>
 void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
     Edge_T<T> * ptr = NULL;
     uint64_t degree;
+    uint64_t n_commons;
     for(uint64_t i=0;i<n_nodes;i++){
         if(e_table[i] != NULL){
             degree = 0;
+            n_commons = 0;
             ptr = e_table[i]->next;
             while(ptr != NULL){
                 degree++;
+                if(ptr->common == COMMON) n_commons++;
                 ptr = ptr->next;
             }
             e_table[i]->degree = degree;
+            e_table[i]->n_commons = n_commons;
         }
     }
 }
@@ -214,7 +218,6 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
     while(ptr != NULL){
         if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON){
             FIFO_queue->push(ptr->node);
-             printf("pushing %" PRIu64"\n", ptr->node);
             e_table[ptr->node]->partition = partition_label;
         }
         ptr = ptr->next;
@@ -228,16 +231,15 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
             while(ptr != NULL){
                 if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON){
                     FIFO_queue->push(ptr->node);
-                    printf("pushing loop %" PRIu64"\n", ptr->node);
                     e_table[ptr->node]->partition = partition_label;
                 }
                 ptr = ptr->next;
             }
         }
     }
-    printf("------------\n");
 }
 
+/*
 template <class T>
 Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 
@@ -302,7 +304,100 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 
     return surrogate;
 }
+*/
+template <class T>
+Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 
+    Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
+    Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
+
+    // Extend in both directions until one node with degree > 2 is found
+    uint64_t master_node = i;
+    route_start = e_table[i];
+    route_end = NULL;
+    last_replaced = e_table[i];
+    
+    ptr = e_table[i]->next;
+    
+
+    while(ptr != NULL){ // Until we find no more common edges
+        
+        // Loop until next common edge
+        while(ptr != NULL && ptr->common != COMMON){
+            ptr = ptr->next;
+        }
+        if(ptr != NULL && ptr->node != last_replaced->node){
+            // Update previous so we wont traverse it again 
+            last_replaced = e_table[master_node];
+            master_node = ptr->node;
+            route_end = e_table[ptr->node];
+            // Not null implies we found common edge 
+            // Save this node as last and look for more 
+            ptr = e_table[ptr->node]->next;
+            
+        }else if(ptr != NULL){
+            // It is the same common edge as before, try to get next 
+            ptr = ptr->next;
+        }
+    }
+
+    
+    surrogate._e1 = route_start;
+    surrogate._e2 = route_end;
+
+    
+    return surrogate;
+}
+
+template <class T>
+Quartet<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
+
+    Quartet<Edge_T<T>> surrogates;
+    Pair<Edge_T<T>> p1, p2;
+    
+    uint64_t j;
+    for(uint64_t i=0;i<n_nodes;i++){
+
+        // Only find surrogate edges from one vertex that is connected to "something"
+        if(e_table[i]->n_commons == 1){
+            p1 = replace_surrogate_by_one(e_table, i);
+
+            if(p1._e1 != NULL && p1._e2 != NULL){
+
+                if(p1._e1->partition != -1 && p1._e2->partition != -1 && p1._e1->partition != p1._e2->partition){
+                    for(j=0;j<n_nodes;j++){
+                        if(i != j){
+
+                            if(e_table[j]->n_commons == 1){
+                                p2 = replace_surrogate_by_one(e_table, j);
+
+                                if(p2._e1 != NULL && p2._e2 != NULL){
+                                    if(p2._e1->partition != -1 && p2._e2->partition != -1 && p2._e1->partition != p2._e2->partition){
+                                        if(p1._e1->node != p2._e1->node && p1._e1->node != p2._e2->node){
+                                            // Partition is feasible if they connect the same partitions 
+                                            std::cout << "PX might be feasible: " << std::endl;
+                                            std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
+                                            std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
+                                            surrogates._p1 = p1;
+                                            surrogates._p2 = p2;
+                                            return surrogates;
+                                            getchar();
+                                        }
+                                        
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return surrogates;
+}
+
+
+/*
 template <class T>
 Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
 
@@ -317,6 +412,7 @@ Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> **
                 // Its a surrogate edge 
 
                 p1 = replace_surrogate_by_one(e_table, i);
+                printf("Have surrogate %" PRIu64", %" PRIu64"\n", p1._e1->node, p1._e2->node);
 
                 up_surrogate_1 = down_surrogate_1 = -1;
 
@@ -387,7 +483,7 @@ Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> **
 
     return surrogates;
 }
-
+*/
 
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
@@ -396,6 +492,6 @@ template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_ta
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
-template Quartet<uint64_t> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template Quartet<Edge_T<uint64_t>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
