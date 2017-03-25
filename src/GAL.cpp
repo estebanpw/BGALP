@@ -116,20 +116,53 @@ int main(int argc, char **av) {
 
     // Get k random solutions
     uint64_t random_sols = 2;
+    /*
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
         ind[i].print_chromosome();
     }
     getchar();
+    */
     
     // Local search 
     Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    /*
     for(uint64_t i=0;i<n_alleles;i++){
         aux1->set_allele(i, ind[0].get_allele(i));
         aux2->set_allele(i, ind[1].get_allele(i));
     }
+    */
+    // For exampl 1 Whitley et al
+    uint64_t values[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
+    aux1->set_allele(0, &values[0]);
+    aux1->set_allele(1, &values[6]);
+    aux1->set_allele(2, &values[8]);
+    aux1->set_allele(3, &values[10]);
+    aux1->set_allele(4, &values[11]);
+    aux1->set_allele(5, &values[9]);
+    aux1->set_allele(6, &values[7]);
+    aux1->set_allele(7, &values[3]);
+    aux1->set_allele(8, &values[5]);
+    aux1->set_allele(9, &values[2]);
+    aux1->set_allele(10, &values[1]);
+    aux1->set_allele(11, &values[4]);
 
+    aux2->set_allele(0, &values[0]);
+    aux2->set_allele(1, &values[6]);
+    aux2->set_allele(2, &values[10]);
+    aux2->set_allele(3, &values[8]);
+    aux2->set_allele(4, &values[9]);
+    aux2->set_allele(5, &values[11]);
+    aux2->set_allele(6, &values[7]);
+    aux2->set_allele(7, &values[3]);
+    aux2->set_allele(8, &values[2]);
+    aux2->set_allele(9, &values[5]);
+    aux2->set_allele(10, &values[4]);
+    aux2->set_allele(11, &values[1]);
+
+    aux1->print_chromosome();
+    aux2->print_chromosome();
     /*
     fprintf(stdout, "Running 2-opt on 1\n");
     run_2opt(&ind[0], aux1, (void *) &tsp);

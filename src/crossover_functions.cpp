@@ -73,6 +73,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
             // Add node
             e_table[current_allele] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
             e_table[current_allele]->partition = -1; // No partition
+            e_table[current_allele]->node = current_allele;
         }
 
         if(i > 0){ // The previous adjacent
@@ -144,7 +145,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
         et_ptr->next->node = *a->get_allele(a->get_length()-1);
         et_ptr->next->common = UNCOMMON;
         et_ptr->next->next = NULL;
-        printf("added (1) %" PRIu64"\n", et_ptr->next->node);
+        //printf("added (1) %" PRIu64"\n", et_ptr->next->node);
     }
     
 
@@ -161,7 +162,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
         et_ptr->next->node = *a->get_allele(0);
         et_ptr->next->common = UNCOMMON;
         et_ptr->next->next = NULL;
-        printf("added (2) %" PRIu64"\n", et_ptr->next->node);
+        //printf("added (2) %" PRIu64"\n", et_ptr->next->node);
     }
     
     
@@ -213,6 +214,7 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
     while(ptr != NULL){
         if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON){
             FIFO_queue->push(ptr->node);
+             printf("pushing %" PRIu64"\n", ptr->node);
             e_table[ptr->node]->partition = partition_label;
         }
         ptr = ptr->next;
@@ -221,17 +223,19 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
     while(!FIFO_queue->empty()){
         uint64_t target_node = FIFO_queue->front();
         FIFO_queue->pop();
-        if(e_table[target_node] != NULL && e_table[target_node]->partition == -1){
+        if(e_table[target_node] != NULL){
             ptr = e_table[target_node]->next;
             while(ptr != NULL){
                 if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON){
                     FIFO_queue->push(ptr->node);
+                    printf("pushing loop %" PRIu64"\n", ptr->node);
                     e_table[ptr->node]->partition = partition_label;
                 }
                 ptr = ptr->next;
             }
         }
     }
+    printf("------------\n");
 }
 
 template <class T>
@@ -245,38 +249,54 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
     previous = master_ptr;
     ptr = master_ptr->next;
     while(master_ptr->degree == 2){
-        printf("Can i get stuck here? %" PRIu64"\n", ptr->node);
-        previous = master_ptr;
+        //printf("Can i get stuck here? %" PRIu64"\n", ptr->node); getchar();
+        
         // Traverse in one direction
         if(ptr->node != previous->node){
+            //printf("ptr->node %" PRIu64" != previous->node %" PRIu64"\n", ptr->node, previous->node);
+            previous = master_ptr;
             master_ptr = e_table[ptr->node];
             ptr = master_ptr->next;
         }else{
             // In case the first one is the previous one
+            //printf("ptr->node %" PRIu64" == previous->node %" PRIu64"\n", ptr->node, previous->node);
+            previous = master_ptr;
             master_ptr = e_table[ptr->next->node];
             ptr = master_ptr->next;
+            if(master_ptr->next->node != previous->node) ptr = master_ptr->next; else ptr = master_ptr->next->next;     // 220 
         }
     }
     
     // The surrogate should be in previous (since master_ptr is no longer of degree 2)
     surrogate._e1 = previous;
     // Same path but backwards
-    master_ptr = e_table[i];
-    previous = master_ptr;
-    ptr = master_ptr->next->next; // This is the only difference!!
+    master_ptr = e_table[i];            // 0
+    previous = master_ptr;              // 0
+    ptr = master_ptr->next->next;       // 214
     while(master_ptr->degree == 2){
-        
-        previous = master_ptr;
+
+        //printf("Or here? %" PRIu64"\n", ptr->node); getchar();
+        //previous = master_ptr;          
         // Traverse in one direction
-        if(ptr->node != previous->node){
-            master_ptr = e_table[ptr->node];
-            ptr = master_ptr->next;
+        if(ptr->node != previous->node){   
+            //printf("ptr->node %" PRIu64" != previous->node %" PRIu64"\n", ptr->node, previous->node);
+            previous = master_ptr;              // 0
+            master_ptr = e_table[ptr->node];    // 214
+            ptr = master_ptr->next;             // 0
         }else{
             // In case the first one is the previous one
-            master_ptr = e_table[ptr->next->node];
-            ptr = master_ptr->next;
+            //printf("ptr->node %" PRIu64" == previous->node %" PRIu64"\n", ptr->node, previous->node);
+            previous = master_ptr;                  // 214
+            master_ptr = e_table[ptr->next->node];  // 201
+            if(master_ptr->next->node != previous->node) ptr = master_ptr->next; else ptr = master_ptr->next->next;     // 211
+
         }
+        
     }
+    // @201: 214*, 211*,
+    // @214: 0*, 201*,
+    // @0: 1*, 214*,
+
     // The other end of the surrogate is in previous
     surrogate._e2 = previous;
 
@@ -348,11 +368,12 @@ Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> **
                                     down_surrogate_2 = p2._e2->next->node;
                                 }
 
-                                if(up_surrogate_2 != -1 && down_surrogate_2 != -1){
+                                if(up_surrogate_2 != -1 && down_surrogate_2 != -1 && up_surrogate_1 != up_surrogate_2){
                                     // Final check, are they connecting the same partitions?
                                     std::cout << "PX might be feasible: " << std::endl;
                                     std::cout << "SG(1) = " << up_surrogate_1 << ", " << down_surrogate_1 << std::endl;
                                     std::cout << "SG(2) = " << up_surrogate_2 << ", " << down_surrogate_2 << std::endl;
+                                    getchar();
                                 }
                                 
                             }
