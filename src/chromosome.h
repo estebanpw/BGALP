@@ -39,6 +39,7 @@ public:
     void set_position(Position pos){ this->position = pos;}
     uint64_t get_length() { return this->length; }
     void print_chromosome();
+    void write_chromosome();
     ~Chromosome();
 };
 

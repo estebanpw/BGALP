@@ -38,6 +38,12 @@ void Chromosome<T>::print_chromosome(){
     std::cout << std::endl;
 }
 
+template <class T>
+void Chromosome<T>::write_chromosome(){
+    std::cout << "\t@(" << this->position.x <<  ", " << this->position.y << ", " << this->position.z << ") L: " << this->length;
+    std::cout << "\tF: " << this->fitness << " at " << this << std::endl;
+    std::cout << std::endl;
+}
 
 
 // Rucksack chromosome (not done)

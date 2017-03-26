@@ -374,7 +374,7 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
                                     if(p2._e1->partition != -1 && p2._e2->partition != -1 && p2._e1->partition != p2._e2->partition){
                                         if(p1._e1->node != p2._e1->node && p1._e1->node != p2._e2->node){
                                             // Partition is feasible if they connect the same partitions 
-                                            std::cout << "PX might be feasible: " << std::endl;
+                                            std::cout << "PX is feasible: " << std::endl;
                                             std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
                                             std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
                                             surrogates->_p1 = p1;
@@ -522,6 +522,8 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
     }while(i != PX_start_parent_2);
 
     
+    
+
 }
 
 

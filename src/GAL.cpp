@@ -102,7 +102,7 @@ int main(int argc, char **av) {
 
     fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
     manager->get_best_individual()->print_chromosome();
-    getchar();
+    //getchar();
 
     // Get k best solutions
     /*
@@ -115,28 +115,36 @@ int main(int argc, char **av) {
     */
 
     // Get k random solutions
-    //uint64_t random_sols = 2;
-    /*
+    uint64_t random_sols = 10;
+    
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
         ind[i].print_chromosome();
     }
-    getchar();
-    */
+    //getchar();
     
+    //uint64_t combinations = ((random_sols)*(random_sols-1))/2;
     // Local search 
-    
-    Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    std::cout << "Creating offsprings: " << std::endl;
+    Chromo_TSP<uint64_t> * locally_optimals = (Chromo_TSP<uint64_t> *) std::malloc(random_sols*sizeof(Chromo_TSP<uint64_t>));
+    if(locally_optimals == NULL) throw "Could not allocate locally optimal individuals";
+    for(uint64_t i=0;i<random_sols;i++){
+        new (&locally_optimals[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    }
     
     /*
-    for(uint64_t i=0;i<n_alleles;i++){
-        aux1->set_allele(i, ind[0].get_allele(i));
-        aux2->set_allele(i, ind[1].get_allele(i));
+    for(uint64_t i=0;i<random_sols;i++){
+        for(uint64_t j=0;j<n_alleles;j++){
+            locally_optimals->set_allele(j, ind[i].get_allele(j));
+        }
     }
     */
-    // For example 1 Whitley et al
     
+    //Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    //Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    
+    // For example 1 Whitley et al
+    /*
     uint64_t values[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
     aux1->set_allele(0, &values[0]);
     aux1->set_allele(1, &values[6]);
@@ -166,15 +174,74 @@ int main(int argc, char **av) {
 
     aux1->print_chromosome();
     aux2->print_chromosome();
-    
-
-    /*
-    fprintf(stdout, "Running 2-opt on 1\n");
-    run_2opt(&ind[0], aux1, (void *) &tsp);
-    fprintf(stdout, "Running 2-opt on 2\n");
-    run_2opt(&ind[1], aux2, (void *) &tsp);
     */
 
+    
+    // Run 2-opt 
+    std::cout << "Running 2-opt: \n\t";
+    for(uint64_t i=0;i<random_sols;i++){
+        run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
+        std::cout << i << std::endl;
+        fflush(stdout);
+    }
+    std::cout << std::endl;
+
+    std::cout << "Locally optimal: " << std::endl;
+    for(uint64_t i=0;i<random_sols;i++){
+        locally_optimals[i].print_chromosome();
+    }
+    
+    // Allocate edge tables, FIFO queue and memory pool
+    Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
+    if(e_table == NULL) throw "Could not allocate edges table";
+    memory_pool * mp = new memory_pool(POOL_SIZE);
+    Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    std::queue<uint64_t> FIFO_queue;
+
+    // For all possible combinations 
+    
+    for(uint64_t i=0;i<random_sols;i++){
+        for(uint64_t j=i+1;j<random_sols;j++){
+            // Restart memory pool, FIFO queue and Edge table
+            mp->full_reset();
+            while(!FIFO_queue.empty()) FIFO_queue.pop();
+            memset(e_table, 0x0, n_alleles*sizeof(Edge_T<uint64_t> *)); // Contents are handled by the pool
+
+            // Fill edge table for two random solutions
+            fill_edge_table(&locally_optimals[i], e_table, mp);
+            fill_edge_table(&locally_optimals[j], e_table, mp);
+            
+            // Calculate degree
+            generate_degree(n_alleles, e_table);
+
+            // Locate partitions (attempt to find only two parts.)
+            uint64_t node_id = get_highest_node_unpartitioned(n_alleles, e_table);
+            find_connected_components(node_id, 0, e_table, &FIFO_queue);
+            node_id = get_highest_node_unpartitioned(n_alleles, e_table);
+            find_connected_components(node_id, 1, e_table, &FIFO_queue);
+            
+            // Find if partition crossover is feasible
+            Quartet<Edge_T<uint64_t>> px;
+            find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
+            if(px._p1._e1 != NULL){
+                apply_PX_chromosomes(n_alleles, e_table, &px, &locally_optimals[i], &locally_optimals[j], offspring_1, offspring_2);
+                // Recompute fitness 
+                offspring_1->compute_fitness((void *) &tsp);
+                offspring_2->compute_fitness((void *) &tsp);
+
+                std::cout << "---------------" << std::endl;
+                locally_optimals[i].print_chromosome();
+                locally_optimals[j].print_chromosome();
+                std::cout << "\tgenerates" << std::endl;
+                offspring_1->print_chromosome();
+                offspring_2->print_chromosome();
+
+            }
+        }
+    }
+    
+    /*
     std::cout << "Building edges table: " << std::endl;
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
@@ -207,12 +274,14 @@ int main(int argc, char **av) {
     Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
 
     if(px._p1._e1 != NULL) apply_PX_chromosomes(n_alleles, e_table, &px, aux1, aux2, offspring_1, offspring_2);
+
+    */
     // Deallocating
-    
+    /*
     std::cout << "Results from PX: " << std::endl;
     offspring_1->print_chromosome();
     offspring_2->print_chromosome();
-
+    */ 
     
     for(uint64_t i=0;i<tsp.n;i++){
         std::free(tsp.dist[i]);
@@ -223,6 +292,8 @@ int main(int argc, char **av) {
     delete manager;
     delete mp;
     delete rs;
+    //delete offspring_1;
+    //delete offspring_2;
     std::free(ind);
     std::free(population);
     std::free(e_table);
