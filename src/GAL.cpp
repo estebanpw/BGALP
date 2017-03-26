@@ -115,7 +115,7 @@ int main(int argc, char **av) {
     */
 
     // Get k random solutions
-    uint64_t random_sols = 2;
+    //uint64_t random_sols = 2;
     /*
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -125,15 +125,18 @@ int main(int argc, char **av) {
     */
     
     // Local search 
+    
     Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    
     /*
     for(uint64_t i=0;i<n_alleles;i++){
         aux1->set_allele(i, ind[0].get_allele(i));
         aux2->set_allele(i, ind[1].get_allele(i));
     }
     */
-    // For exampl 1 Whitley et al
+    // For example 1 Whitley et al
+    
     uint64_t values[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
     aux1->set_allele(0, &values[0]);
     aux1->set_allele(1, &values[6]);
@@ -163,6 +166,8 @@ int main(int argc, char **av) {
 
     aux1->print_chromosome();
     aux2->print_chromosome();
+    
+
     /*
     fprintf(stdout, "Running 2-opt on 1\n");
     run_2opt(&ind[0], aux1, (void *) &tsp);
@@ -180,25 +185,33 @@ int main(int argc, char **av) {
     fill_edge_table(aux2, e_table, mp);
     // Calculate degree
     generate_degree(n_alleles, e_table);
-    print_edge_tables(n_alleles, e_table);
+    //print_edge_tables(n_alleles, e_table);
 
     // Locate partitions
     std::queue<uint64_t> FIFO_queue;
     uint64_t node_id = get_highest_node_unpartitioned(n_alleles, e_table);
     find_connected_components(node_id, 0, e_table, &FIFO_queue);
-    std::cout << "First partition " << std::endl;
-    print_edge_tables(n_alleles, e_table);
+    //std::cout << "First partition " << std::endl;
+    //print_edge_tables(n_alleles, e_table);
 
     node_id = get_highest_node_unpartitioned(n_alleles, e_table);
     find_connected_components(node_id, 1, e_table, &FIFO_queue);
-    std::cout << "Second partition " << std::endl;
-    print_edge_tables(n_alleles, e_table);
+    //std::cout << "Second partition " << std::endl;
+    //print_edge_tables(n_alleles, e_table);
 
     // Find if partition crossover is feasible
-    Quartet<Edge_T<uint64_t>> px = find_surrogate_edge_that_partitionates(n_alleles, e_table);
+    Quartet<Edge_T<uint64_t>> px;
+    find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
 
+    Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
 
+    if(px._p1._e1 != NULL) apply_PX_chromosomes(n_alleles, e_table, &px, aux1, aux2, offspring_1, offspring_2);
     // Deallocating
+    
+    std::cout << "Results from PX: " << std::endl;
+    offspring_1->print_chromosome();
+    offspring_2->print_chromosome();
 
     
     for(uint64_t i=0;i<tsp.n;i++){

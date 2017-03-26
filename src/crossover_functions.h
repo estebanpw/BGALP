@@ -29,7 +29,10 @@ template <class T>
 void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<T> ** e_table, std::queue<T> * FIFO_queue);
 
 template <class T>
-Quartet<Edge_T<T>>  find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table);
+void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * surrogates);
+
+template <class T>
+void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2);
 
 /*
 template <class T>

@@ -350,9 +350,8 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 }
 
 template <class T>
-Quartet<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
+void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * surrogates){
 
-    Quartet<Edge_T<T>> surrogates;
     Pair<Edge_T<T>> p1, p2;
     
     uint64_t j;
@@ -378,10 +377,10 @@ Quartet<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge
                                             std::cout << "PX might be feasible: " << std::endl;
                                             std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
                                             std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
-                                            surrogates._p1 = p1;
-                                            surrogates._p2 = p2;
-                                            return surrogates;
-                                            getchar();
+                                            surrogates->_p1 = p1;
+                                            surrogates->_p2 = p2;
+                                            return;
+                                            //getchar();
                                         }
                                         
                                     }
@@ -393,97 +392,138 @@ Quartet<Edge_T<T>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge
             }
         }
     }
-    return surrogates;
+    surrogates->_p1._e1 = NULL;
+    surrogates->_p1._e2 = NULL;
+    surrogates->_p2._e1 = NULL;
+    surrogates->_p2._e2 = NULL;
 }
 
-
-/*
 template <class T>
-Quartet<T> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table){
-
-    Quartet<T> surrogates;
-    Pair<Edge_T<T>> p1, p2;
+void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2){
     
-    int64_t up_surrogate_1, down_surrogate_1, up_surrogate_2, down_surrogate_2;
-    uint64_t j;
-    for(uint64_t i=0;i<n_nodes;i++){
-        if(e_table[i] != NULL){
-            if(e_table[i]->degree == 2 && e_table[i]->partition == -1){
-                // Its a surrogate edge 
+    uint64_t PX_start_parent_1, PX_end_parent_1, PX_start_parent_2, PX_end_parent_2;
+    uint64_t i, j;
+    bool goes_forward_P1 = true, goes_forward_P2 = true;
 
-                p1 = replace_surrogate_by_one(e_table, i);
-                printf("Have surrogate %" PRIu64", %" PRIu64"\n", p1._e1->node, p1._e2->node);
+    // Find pos(px1), pos(px2) in P1, P2
+    for(i=0;i<n_nodes;i++){
+        if(*P1->get_allele(i) == px->_p1._e1->node) PX_start_parent_1 = i;
+        if(*P1->get_allele(i) == px->_p2._e1->node) PX_end_parent_1 = i;
+        if(*P2->get_allele(i) == px->_p1._e1->node) PX_start_parent_2 = i;
+        if(*P2->get_allele(i) == px->_p2._e1->node) PX_end_parent_2 = i;
+    }
+    
+    // Put positions in order    
+    uint64_t aux = PX_start_parent_1;
+    PX_start_parent_1 = min(PX_start_parent_1, PX_end_parent_1);
+    PX_end_parent_1 = max(aux, PX_end_parent_1);
 
-                up_surrogate_1 = down_surrogate_1 = -1;
+    aux = PX_start_parent_2;
+    PX_start_parent_2 = min(PX_start_parent_2, PX_end_parent_2);
+    PX_end_parent_2 = max(aux, PX_end_parent_2);
 
-                if(e_table[p1._e1->next->node]->degree != 2 && e_table[p1._e1->next->node]->partition != - 1){
-                    // Connects to a partition
-                    up_surrogate_1 = p1._e1->next->node;
-                }
-                if(e_table[p1._e1->next->next->node]->degree != 2 && e_table[p1._e1->next->next->node]->partition != - 1){
-                    // Connects to a partition 
-                    up_surrogate_1 = p1._e1->next->node;
-                }
-
-                if(e_table[p1._e2->next->node]->degree != 2 && e_table[p1._e2->next->node]->partition != - 1){
-                    // Connects to a partition
-                    down_surrogate_1 = p1._e2->next->node;
-                }
-                if(e_table[p1._e2->next->next->node]->degree != 2 && e_table[p1._e2->next->next->node]->partition != - 1){
-                    // Connects to a partition 
-                    down_surrogate_1 = p1._e2->next->node;
-                }
-                // We have in up_surrogate_1 and down_surrogate_1 the node IDs that connect different partitions
-
-                if(up_surrogate_1 != -1 && down_surrogate_1 != -1){
-                    for(j=i+1;j<n_nodes;j++){
-                        if(e_table[j] != NULL){
-                            if(e_table[j]->degree == 2 && e_table[j]->partition == -1){
-                                p2 = replace_surrogate_by_one(e_table, j);
-
-                                // At this point we are building over p1, p2 all combinations of surrogated edges
-                                // We should halt at first two surrogates that connect two partitions
-
-                                up_surrogate_2 = down_surrogate_2 = -1;
-
-                                if(e_table[p2._e1->next->node]->degree != 2 && e_table[p2._e1->next->node]->partition != - 1){
-                                    // Connects to a partition
-                                    up_surrogate_2 = p2._e1->next->node;
-                                }
-                                if(e_table[p2._e1->next->next->node]->degree != 2 && e_table[p2._e1->next->next->node]->partition != - 1){
-                                    // Connects to a partition 
-                                    up_surrogate_2 = p2._e1->next->node;
-                                }
-
-                                if(e_table[p2._e2->next->node]->degree != 2 && e_table[p2._e2->next->node]->partition != - 1){
-                                    // Connects to a partition
-                                    down_surrogate_2 = p2._e2->next->node;
-                                }
-                                if(e_table[p2._e2->next->next->node]->degree != 2 && e_table[p2._e2->next->next->node]->partition != - 1){
-                                    // Connects to a partition 
-                                    down_surrogate_2 = p2._e2->next->node;
-                                }
-
-                                if(up_surrogate_2 != -1 && down_surrogate_2 != -1 && up_surrogate_1 != up_surrogate_2){
-                                    // Final check, are they connecting the same partitions?
-                                    std::cout << "PX might be feasible: " << std::endl;
-                                    std::cout << "SG(1) = " << up_surrogate_1 << ", " << down_surrogate_1 << std::endl;
-                                    std::cout << "SG(2) = " << up_surrogate_2 << ", " << down_surrogate_2 << std::endl;
-                                    getchar();
-                                }
-                                
-                            }
-                        }
-                    }
-                }
-                                 
-            }
-        }
+    // Detect whether we have to copy forward of backwards
+    i = (PX_start_parent_1 + 1) % n_nodes;
+    while(i != PX_end_parent_1){
+        if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){ goes_forward_P1 = false; break; }
+        i = (i + 1) % n_nodes;
+    }
+    i = (PX_start_parent_2 + 1) % n_nodes;
+    while(i != PX_end_parent_2){
+        if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){ goes_forward_P2 = false; break; }
+        i = (i + 1) % n_nodes;
     }
 
-    return surrogates;
+    //printf("Goes f? %d %d\n", (int) goes_forward_P1, (int) goes_forward_P1);
+    
+    // Copy P1 in offspring 1 and 2
+    for(i=0;i<n_nodes;i++){
+        offspring_1->set_allele(i, P1->get_allele(i));
+        offspring_2->set_allele(i, P1->get_allele(i));
+    }
+
+    // Copy forward or backwards from P2 to offsprings
+    i = (PX_end_parent_2) % n_nodes;
+    j = (PX_end_parent_1) % n_nodes;
+    //printf("Copying from %" PRIu64" to %" PRIu64"\n", i, PX_start_parent_2);
+    //printf("Into %" PRIu64" to %" PRIu64"\n", j, PX_start_parent_1);
+
+    do{
+        
+        offspring_1->set_allele(j, (P2->get_allele(i)));
+        if(goes_forward_P1){
+            i = (i + 1) % n_nodes;
+        }else{
+            if(i == 0) i = n_nodes-1; else i--;
+        }
+        if(goes_forward_P2){
+            j = (j + 1) % n_nodes;
+        }else{
+            if(j == 0) j = n_nodes-1; else j--;
+        }
+
+    }while(i != PX_start_parent_2);
+        
+    // REPEAT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    goes_forward_P1 = true, goes_forward_P2 = true;
+
+    // Find pos(px1), pos(px2) in P1, P2
+    for(i=0;i<n_nodes;i++){
+        if(*P1->get_allele(i) == px->_p1._e2->node) PX_start_parent_1 = i;
+        if(*P1->get_allele(i) == px->_p2._e2->node) PX_end_parent_1 = i;
+        if(*P2->get_allele(i) == px->_p1._e2->node) PX_start_parent_2 = i;
+        if(*P2->get_allele(i) == px->_p2._e2->node) PX_end_parent_2 = i;
+    }
+    
+    // Put positions in order    
+    aux = PX_start_parent_1;
+    PX_start_parent_1 = min(PX_start_parent_1, PX_end_parent_1);
+    PX_end_parent_1 = max(aux, PX_end_parent_1);
+
+    aux = PX_start_parent_2;
+    PX_start_parent_2 = min(PX_start_parent_2, PX_end_parent_2);
+    PX_end_parent_2 = max(aux, PX_end_parent_2);
+
+    i = (PX_start_parent_1 + 1) % n_nodes;
+    while(i != PX_end_parent_1){
+        if(*P1->get_allele(i) == px->_p1._e1->node || *P1->get_allele(i) == px->_p2._e1->node){ goes_forward_P1 = false; break; }
+        i = (i + 1) % n_nodes;
+    }
+    i = (PX_start_parent_2 + 1) % n_nodes;
+    while(i != PX_end_parent_2){
+        if(*P2->get_allele(i) == px->_p1._e1->node || *P2->get_allele(i) == px->_p2._e1->node){ goes_forward_P2 = false; break; }
+        i = (i + 1) % n_nodes;
+    }
+
+    //printf("Goes f? %d %d\n", (int) goes_forward_P1, (int) goes_forward_P1);
+    
+    
+    // Just copy from start until finding end from P2 in offspring 1 and 2
+    i = (PX_end_parent_2) % n_nodes;
+    j = (PX_end_parent_1) % n_nodes;
+    //printf("Copying from %" PRIu64" to %" PRIu64"\n", i, PX_start_parent_2);
+    //printf("Into %" PRIu64" to %" PRIu64"\n", j, PX_start_parent_1);
+
+    do{
+        
+        offspring_2->set_allele(j, (P2->get_allele(i)));
+        if(goes_forward_P1){
+            i = (i + 1) % n_nodes;
+        }else{
+            if(i == 0) i = n_nodes-1; else i--;
+        }
+        if(goes_forward_P2){
+            j = (j + 1) % n_nodes;
+        }else{
+            if(j == 0) j = n_nodes-1; else j--;
+        }
+
+    }while(i != PX_start_parent_2);
+
+    
 }
-*/
+
 
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
@@ -492,6 +532,7 @@ template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_ta
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
-template Quartet<Edge_T<uint64_t>> find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
+template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
