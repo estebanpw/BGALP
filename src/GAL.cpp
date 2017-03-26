@@ -197,6 +197,7 @@ int main(int argc, char **av) {
     memory_pool * mp = new memory_pool(POOL_SIZE);
     Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+    Chromo_TSP<uint64_t> * after_px_2opt = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     std::queue<uint64_t> FIFO_queue;
 
     // For all possible combinations 
@@ -235,7 +236,19 @@ int main(int argc, char **av) {
                 locally_optimals[j].print_chromosome();
                 std::cout << "\tgenerates" << std::endl;
                 offspring_1->print_chromosome();
+                run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
+                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
                 offspring_2->print_chromosome();
+
+                std::cout << "#\t" << *locally_optimals[i].get_fitness() << "\t";
+                std::cout << *locally_optimals[j].get_fitness() << "\t";
+                std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
+                std::cout << *after_px_2opt->get_fitness() << "\t";
+
+                run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
+
+                std::cout << *after_px_2opt->get_fitness() << std::endl;
+                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
 
             }
         }
