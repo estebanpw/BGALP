@@ -400,10 +400,127 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
 
 template <class T>
 void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2){
+
+    uint64_t common_start_P1 = 0, common_start_P2 = 0;
+    uint64_t chrom_length = P1->get_length();
+    uint64_t i, j, p;
+    bool can_advance = false;
+    Chromosome<T> * current_copying = P1;
+
+
+    for(i=0;i<n_nodes;i++){
+        // I require to find the same surrogate node in both 
+        if(*P1->get_allele(i) == px->_p1._e1->node) common_start_P1 = i;
+        if(*P2->get_allele(i) == px->_p1._e1->node) common_start_P2 = i;
+        offspring_1->set_allele(i, P1->get_allele(i));
+        offspring_2->set_allele(i, P1->get_allele(i));
+
+    }
+
+    i = common_start_P1;
+    j = common_start_P2;
+    p = common_start_P1;
+    do{
+
+        // I advance by copying alleles. Every time I hit a node that belongs to a partition, I switch to copying from the other one
+        if(current_copying == P1){
+            std::cout << "I am at " << p << " copying from P1 " << i << " which is " << *P1->get_allele(i) << std::endl;
+            getchar();
+            offspring_1->set_allele(p, P1->get_allele(i));
+        }else{
+            std::cout << "I am at " << p << " copying from P2 " << i << " which is " << *P2->get_allele(i) << std::endl;
+            getchar();
+            offspring_1->set_allele(p, P2->get_allele(j));
+        }
+        
+        p = (p + 1) % chrom_length;
+        i = (i + 1) % chrom_length;
+        j = (j + 1) % chrom_length;
+
+        if(current_copying == P1){
+            // If we hit, change
+
+            if(can_advance && (*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node)){
+                current_copying = P2;
+                can_advance = false;
+            }
+
+            if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){
+                can_advance = true;
+            }
+             
+        }else{
+            // If we hit, change
+            if(can_advance && (*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node)){
+                current_copying = P1;
+                can_advance = false;
+            }
+
+            if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){
+                can_advance = true;
+            } 
+            
+        }
+
+
+    }while(i != common_start_P1);
+
+    //
+    // Do the exact same thing but starting with P2 
+    current_copying = P2;
+    i = common_start_P1;
+    j = common_start_P2;
+    p = j;
+    do{
+
+        // I advance by copying alleles. Every time I hit a node that belongs to a partition, I switch to copying from the other one
+        if(current_copying == P1){
+            offspring_2->set_allele(p, P1->get_allele(i));
+        }else{
+            offspring_2->set_allele(p, P2->get_allele(j));
+        }
+        
+        p = (p + 1) % chrom_length;
+        i = (i + 1) % chrom_length;
+        j = (j + 1) % chrom_length;
+
+        if(current_copying == P1){
+            // If we hit, change
+
+            if(can_advance && (*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node)){
+                current_copying = P2;
+                can_advance = false;
+            }
+
+            if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){
+                can_advance = true;
+            }
+             
+        }else{
+            // If we hit, change
+            if(can_advance && (*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node)){
+                current_copying = P1;
+                can_advance = false;
+            }
+
+            if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){
+                can_advance = true;
+            } 
+            
+        }
+
+
+    }while(i != common_start_P2);
+}
+
+/*
+template <class T>
+void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2){
     
-    uint64_t PX_start_parent_1, PX_end_parent_1, PX_start_parent_2, PX_end_parent_2;
+    uint64_t PX_start_parent_1 = 0, PX_end_parent_1 = 0, PX_start_parent_2 = 0, PX_end_parent_2 = 0;
     uint64_t i, j;
     bool goes_forward_P1 = true, goes_forward_P2 = true;
+
 
     // Find pos(px1), pos(px2) in P1, P2
     for(i=0;i<n_nodes;i++){
@@ -526,7 +643,7 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
 
 }
 
-
+*/
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
 template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);

@@ -63,4 +63,6 @@ class Chromo_TSP : public Chromosome<T> {
 public:
     Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
     void compute_fitness(void * solution_info);
+    void verify_chromosome(char * step);
 };
+

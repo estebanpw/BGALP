@@ -118,9 +118,24 @@ void Chromo_TSP<T>::compute_fitness(void * solution_info){
         path_sum +=  tsp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
     }
     path_sum += tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]]; //Return to initial node
-    this->fitness = path_sum;
-    
-    
+    this->fitness = path_sum;    
+}
+
+template <class T>
+void Chromo_TSP<T>::verify_chromosome(char * step){
+    uint64_t verification[this->length];
+    for(uint64_t i=0;i<this->length;i++){
+        verification[i] = 0;
+    }
+
+    for(uint64_t i=0;i<this->length;i++){
+        verification[this->chromosome[i]]++;
+    }
+    for(uint64_t i=0;i<this->length;i++){
+        if(verification[i] != 1){
+            std::cout << "Found error at " << i << " at " << step << " having " << verification[i] << std::endl;
+        }
+    }
 }
 
 

@@ -24,21 +24,25 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
 
     uint64_t i, k;
     Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) solution_info;
-    Chromosome<uint64_t> * aux;
+    
+
+    
+
     long double best_distance = LDBL_MAX;
     while(*route->get_fitness() < best_distance){
         
         start_again:
 
         best_distance = *route->get_fitness();
-        for (i = 0; i < route->get_length() - 1; i++) {
-            for (k = i + 1; k < route->get_length(); k++) {
+        for(i = 0; i < route->get_length() - 1; i++){
+            for(k = i + 1; k < route->get_length(); k++){
                 _2optSwap(route, two_opt_chrom, i, k);
                 two_opt_chrom->compute_fitness(tsp);
-                if (*two_opt_chrom->get_fitness() < best_distance) {
-                    aux = route;
-                    route = two_opt_chrom;
-                    two_opt_chrom = aux;
+                if (*two_opt_chrom->get_fitness() < best_distance){
+                    for(i=0;i<two_opt_chrom->get_length();i++){
+                        route->set_allele(i, two_opt_chrom->get_allele(i));
+                    }
+                    route->set_fitness(*two_opt_chrom->get_fitness());
                     /*
                     fprintf(stdout, "Improved at %" PRIu64", %" PRIu64"\n", i, k);
                     route->print_chromosome();
@@ -50,4 +54,7 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
             }
         }
     }
+
+    //printf("last: %Le %p\n", *route->get_fitness(), route);
+    //printf("last: %Le %p\n", *two_opt_chrom->get_fitness(), two_opt_chrom);
 }

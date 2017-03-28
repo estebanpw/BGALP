@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <ctype.h>
+#include <cfloat>
 #include <pthread.h>
 #include <queue>
 #include <time.h>
@@ -115,7 +116,7 @@ int main(int argc, char **av) {
     */
 
     // Get k random solutions
-    uint64_t random_sols = 10;
+    uint64_t random_sols = 5;
     
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -180,7 +181,9 @@ int main(int argc, char **av) {
     // Run 2-opt 
     std::cout << "Running 2-opt: \n\t";
     for(uint64_t i=0;i<random_sols;i++){
+        ind[i].verify_chromosome("Steady state");
         run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
+        ind[i].verify_chromosome("Steady state after 2-opt");
         std::cout << i << std::endl;
         fflush(stdout);
     }
@@ -226,28 +229,43 @@ int main(int argc, char **av) {
             Quartet<Edge_T<uint64_t>> px;
             find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
             if(px._p1._e1 != NULL){
+
+                locally_optimals[i].print_chromosome();
+                locally_optimals[j].print_chromosome();
                 apply_PX_chromosomes(n_alleles, e_table, &px, &locally_optimals[i], &locally_optimals[j], offspring_1, offspring_2);
                 // Recompute fitness 
                 offspring_1->compute_fitness((void *) &tsp);
+                offspring_1->verify_chromosome("(1) after PX");
                 offspring_2->compute_fitness((void *) &tsp);
+                offspring_2->verify_chromosome("(2) after PX");
 
-                std::cout << "---------------" << std::endl;
-                locally_optimals[i].print_chromosome();
-                locally_optimals[j].print_chromosome();
-                std::cout << "\tgenerates" << std::endl;
+                printf("$$$$$$$$$$$$$\n");
                 offspring_1->print_chromosome();
-                run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
-                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
                 offspring_2->print_chromosome();
+                printf("$$$$$$$$$$$$$\n");
 
                 std::cout << "#\t" << *locally_optimals[i].get_fitness() << "\t";
                 std::cout << *locally_optimals[j].get_fitness() << "\t";
                 std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
-                std::cout << *after_px_2opt->get_fitness() << "\t";
 
+                //std::cout << "---------------" << std::endl;
+                //locally_optimals[i].print_chromosome();
+                //locally_optimals[j].print_chromosome();
+                //std::cout << "\tgenerates" << std::endl;
+                //offspring_1->print_chromosome();
+                after_px_2opt->set_fitness(LDBL_MAX);
+                run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
+                offspring_1->verify_chromosome("(1) after PX and 2-opt");
+                std::cout << *offspring_1->get_fitness() << "\t";
+                
+
+                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
+                //offspring_2->print_chromosome();
+
+                after_px_2opt->set_fitness(LDBL_MAX);
                 run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
-
-                std::cout << *after_px_2opt->get_fitness() << std::endl;
+                offspring_1->verify_chromosome("(2) after PX and 2-opt");
+                std::cout << *offspring_2->get_fitness() << std::endl;
                 //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
 
             }
