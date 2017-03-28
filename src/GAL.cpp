@@ -220,10 +220,19 @@ int main(int argc, char **av) {
             generate_degree(n_alleles, e_table);
 
             // Locate partitions (attempt to find only two parts.)
-            uint64_t node_id = get_highest_node_unpartitioned(n_alleles, e_table);
-            find_connected_components(node_id, 0, e_table, &FIFO_queue);
-            node_id = get_highest_node_unpartitioned(n_alleles, e_table);
-            find_connected_components(node_id, 1, e_table, &FIFO_queue);
+            uint64_t node_id, current_label = 0;
+            bool keep_partitioning = true;
+            do{
+                
+                keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
+                if(keep_partitioning){
+                    find_connected_components(node_id, current_label, e_table, &FIFO_queue);
+                    current_label++;
+                }
+
+            }while(keep_partitioning);
+            //node_id = get_highest_node_unpartitioned(n_alleles, e_table);
+            //find_connected_components(node_id, 1, e_table, &FIFO_queue);
             
             // Find if partition crossover is feasible
             Quartet<Edge_T<uint64_t>> px;
@@ -255,7 +264,7 @@ int main(int argc, char **av) {
                 //offspring_1->print_chromosome();
                 after_px_2opt->set_fitness(LDBL_MAX);
                 run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
-                offspring_1->verify_chromosome("(1) after PX and 2-opt");
+                //offspring_1->verify_chromosome("(1) after PX and 2-opt");
                 std::cout << *offspring_1->get_fitness() << "\t";
                 
 
@@ -264,7 +273,7 @@ int main(int argc, char **av) {
 
                 after_px_2opt->set_fitness(LDBL_MAX);
                 run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
-                offspring_1->verify_chromosome("(2) after PX and 2-opt");
+                //offspring_1->verify_chromosome("(2) after PX and 2-opt");
                 std::cout << *offspring_2->get_fitness() << std::endl;
                 //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
 

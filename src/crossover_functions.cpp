@@ -190,19 +190,21 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
 }
 
 template <class T>
-uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table){
+bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id){
     
-    uint64_t node_id = 0;
+    *node_id = 0;
+    bool found = false;
     uint64_t degree = 0;
     for(uint64_t i=0;i<n_nodes;i++){
         if(e_table[i] != NULL && e_table[i]->partition == -1){
             if(degree < e_table[i]->degree){
                 degree = e_table[i]->degree;
-                node_id = i;
+                *node_id = i;
+                found = true;
             }
         }
     }
-    return node_id;
+    return found;
 }
 
 template <class T>
@@ -350,6 +352,17 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 }
 
 template <class T>
+bool is_connected_to(Edge_T<T> ** e_table, uint64_t node_1, uint64_t node_2){
+    Edge_T<T> * ptr = e_table[node_1]->next;
+    while(ptr != NULL){
+        
+        if(ptr->node == node_2) return true;
+        ptr = ptr->next;
+    }
+    return false;
+}
+
+template <class T>
 void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * surrogates){
 
     Pair<Edge_T<T>> p1, p2;
@@ -373,14 +386,24 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
                                 if(p2._e1 != NULL && p2._e2 != NULL){
                                     if(p2._e1->partition != -1 && p2._e2->partition != -1 && p2._e1->partition != p2._e2->partition){
                                         if(p1._e1->node != p2._e1->node && p1._e1->node != p2._e2->node){
-                                            // Partition is feasible if they connect the same partitions 
-                                            std::cout << "PX is feasible: " << std::endl;
-                                            std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
-                                            std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
-                                            surrogates->_p1 = p1;
-                                            surrogates->_p2 = p2;
-                                            return;
-                                            //getchar();
+                                            if(p1._e1->partition == p2._e1->partition && p1._e2->partition == p2._e2->partition){
+                                                
+                                                bool adjacency_condition_1 = is_connected_to(e_table, p1._e1->node, p2._e1->node);
+                                                bool adjacency_condition_2 = is_connected_to(e_table, p1._e1->node, p2._e2->node);
+                                                bool adjacency_condition_3 = is_connected_to(e_table, p1._e2->node, p2._e1->node);
+                                                bool adjacency_condition_4 = is_connected_to(e_table, p1._e2->node, p2._e2->node);
+                                                
+                                                if(!adjacency_condition_1 && !adjacency_condition_2 && !adjacency_condition_3 && !adjacency_condition_4){
+                                                    // Partition is feasible if they connect the same partitions 
+                                                    std::cout << "PX is feasible: " << std::endl;
+                                                    std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
+                                                    std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
+                                                    surrogates->_p1 = p1;
+                                                    surrogates->_p2 = p2;
+                                                    return;
+                                                    //getchar();
+                                                }
+                                            }
                                         }
                                         
                                     }
@@ -401,21 +424,76 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
 template <class T>
 void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2){
 
-    uint64_t common_start_P1 = 0, common_start_P2 = 0;
-    uint64_t chrom_length = P1->get_length();
-    uint64_t i, j, p;
-    bool can_advance = false;
-    Chromosome<T> * current_copying = P1;
+    uint64_t swath_start_P1 = 0, swath_start_P2 = 0, swath_end_P1 = 0, swath_end_P2;
+    uint64_t i, j;
+    
 
+    // pair1(e1,e2), pair2(e1,e2)
+    // One swath goes from pair1(e2) to pair2(e1)
+    // And the other goe sfrom pair2(e2) to pair1(e1)
 
     for(i=0;i<n_nodes;i++){
-        // I require to find the same surrogate node in both 
-        if(*P1->get_allele(i) == px->_p1._e1->node) common_start_P1 = i;
-        if(*P2->get_allele(i) == px->_p1._e1->node) common_start_P2 = i;
+        // Find first swath in P1 
+        if(*P1->get_allele(i) == px->_p1._e1->node) swath_start_P1 = i;
+        if(*P1->get_allele(i) == px->_p1._e2->node) swath_end_P1 = i;
+        // Find the first swath in P2 
+        if(*P2->get_allele(i) == px->_p1._e1->node) swath_start_P2 = i;
+        if(*P2->get_allele(i) == px->_p1._e2->node) swath_end_P2 = i;
+        
+        // Copy P1 in both offsprings
         offspring_1->set_allele(i, P1->get_allele(i));
         offspring_2->set_allele(i, P1->get_allele(i));
-
     }
+
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    bool go_backwards_P2 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P2 = true; goto escape_2; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P2 = true; goto escape_2; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e2->node){ goto escape_2; }
+    }
+
+    escape_2:
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    bool go_backwards_P1 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P1 = true; goto escape_1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P1 = true; goto escape_1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e2->node){ goto escape_1; }
+    }
+
+    escape_1:
+
+    // At this point we have the swath position starting and ending in both P1 and P2 
+    // and we know if the swaths are to be copied from left to right or right to left 
+
+    // Proceed to copy 
+    i = swath_end_P1;
+    j = swath_end_P2;
+
+    do{
+
+        // Advance
+        if(go_backwards_P1){
+            if(i>0) i--; else i=n_nodes-1;
+        }else{
+            i = (i + 1) % n_nodes;
+        }
+        if(go_backwards_P2){
+            if(j>0) j--; else j=n_nodes-1;
+        }else{
+            j = (j + 1) % n_nodes;
+        }
+
+        // Copy swath from P2 in offspring 1
+        offspring_1->set_allele(i, P2->get_allele(j));
+
+    }while(*P2->get_allele(j) != px->_p2._e1->node && *P2->get_allele(j) != px->_p2._e2->node);
+
+    
+    
+
+    /*
 
     i = common_start_P1;
     j = common_start_P2;
@@ -511,6 +589,8 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
 
 
     }while(i != common_start_P2);
+
+    */
 }
 
 /*
@@ -649,8 +729,9 @@ template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * 
 template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);
 template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_table, memory_pool * mp);
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
-template uint64_t get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, uint64_t * node_id);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
+template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
