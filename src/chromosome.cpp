@@ -134,6 +134,7 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
     for(uint64_t i=0;i<this->length;i++){
         if(verification[i] != 1){
             std::cout << "Found error at " << i << " at " << step << " having " << verification[i] << std::endl;
+            throw "Aborting";
         }
     }
 }

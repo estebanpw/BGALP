@@ -315,8 +315,8 @@ bool is_connected_to(Edge_T<T> ** e_table, uint64_t node_1, uint64_t node_2){
 template <class T>
 void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * surrogates){
 
-    Pair<Edge_T<T>> p1, p2;
-    uint64_t j;
+    Pair<Edge_T<T>> p1, p2, p3;
+    uint64_t j,k;
     for(uint64_t i=0;i<n_nodes;i++){
 
         // Only find surrogate edges from one vertex that is connected to "something"
@@ -337,7 +337,7 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
                                 if(p2._e1 != NULL && p2._e2 != NULL){
                                     if(p2._e1->partition != -1 && p2._e2->partition != -1 && p2._e1->partition != p2._e2->partition){
                                         if(p1._e1->node != p2._e1->node && p1._e1->node != p2._e2->node){
-                                            if(p1._e1->partition == p2._e1->partition && p1._e2->partition == p2._e2->partition){
+                                            if((p1._e1->partition == p2._e1->partition && p1._e2->partition == p2._e2->partition) || (p1._e1->partition == p2._e2->partition && p1._e2->partition == p2._e1->partition)){
                                                 
                                                 bool adjacency_condition_1 = is_connected_to(e_table, p1._e1->node, p2._e1->node);
                                                 bool adjacency_condition_2 = is_connected_to(e_table, p1._e1->node, p2._e2->node);
@@ -345,6 +345,31 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
                                                 bool adjacency_condition_4 = is_connected_to(e_table, p1._e2->node, p2._e2->node);
                                                 
                                                 if(!adjacency_condition_1 && !adjacency_condition_2 && !adjacency_condition_3 && !adjacency_condition_4){
+
+                                                    // Now check that is not another surrogate edge that escapes connecting the two partitions 
+                                                    for(k=j+1;k<n_nodes;k++){
+                                                        if(e_table[k]->n_commons == 1){
+                                                            p3 = replace_surrogate_by_one(e_table, k);
+                                                            if(p3._e1 != NULL && p3._e2 != NULL){
+                                                                if(p3._e1->partition != -1 && p3._e2->partition != -1 && p3._e1->partition != p3._e2->partition){
+                                                                    if(p3._e1->node != p1._e1->node && p3._e1->node != p1._e2->node && p3._e1->node != p2._e1->node && p3._e1->node != p2._e2->node){
+                                                                        if(p3._e2->node != p1._e1->node && p3._e2->node != p1._e2->node && p3._e2->node != p2._e1->node && p3._e2->node != p2._e2->node){
+                                                                            // Only two partitions so it must connect the two (0 and 1)
+                                                                            std::cout << "Cancelled: " << std::endl;
+                                                                            std::cout << "SG(1) = " << p1._e1->node << "(" << p1._e1->partition << " ), " << p1._e2->node << "(" << p1._e2->partition << ")" << std::endl;
+                                                                            std::cout << "SG(2) = " << p2._e1->node << "(" << p2._e1->partition << " ), " << p2._e2->node << "(" << p2._e2->partition << ")" << std::endl;
+                                                                            std::cout << "Because of: " << std::endl;
+                                                                            std::cout << "SG(3) = " << p3._e1->node << "(" << p3._e1->partition << " ), " << p3._e2->node << "(" << p3._e2->partition << ")" << std::endl;
+                                                                            surrogates->_p1._e1 = NULL;
+                                                                            return;
+                                                                        }
+                                                                    }
+                                                                    
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
                                                     // Partition is feasible if they connect the same partitions 
                                                     std::cout << "PX is feasible: " << std::endl;
                                                     std::cout << "SG(1) = " << p1._e1->node << "(" << p1._e1->partition << " ), " << p1._e2->node << "(" << p1._e2->partition << ")" << std::endl;
@@ -367,9 +392,6 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
         }
     }
     surrogates->_p1._e1 = NULL;
-    surrogates->_p1._e2 = NULL;
-    surrogates->_p2._e1 = NULL;
-    surrogates->_p2._e2 = NULL;
 }
 
 template <class T>
@@ -440,7 +462,7 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
         offspring_1->set_allele(i, P2->get_allele(j));
 
     }while(*P2->get_allele(j) != px->_p2._e1->node && *P2->get_allele(j) != px->_p2._e2->node);
-    /*
+    
     
     // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REPEAT 
     for(i=0;i<n_nodes;i++){
@@ -497,7 +519,7 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
         offspring_2->set_allele(i, P2->get_allele(j));
 
     }while(*P2->get_allele(j) != px->_p1._e1->node && *P2->get_allele(j) != px->_p1._e2->node);
-    */
+    
 }
 
 
