@@ -415,7 +415,7 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
         
         // Copy P1 in both offsprings
         offspring_1->set_allele(i, P1->get_allele(i));
-        offspring_2->set_allele(i, P1->get_allele(i));
+        offspring_2->set_allele(i, P2->get_allele(i));
     }
 
     // Check that between swath_start and swath_end there are no other nodes in between in P2
@@ -516,9 +516,9 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
         }
 
         // Copy swath from P2 in offspring 1
-        offspring_2->set_allele(i, P2->get_allele(j));
+        offspring_2->set_allele(j, P1->get_allele(i));
 
-    }while(*P2->get_allele(j) != px->_p1._e1->node && *P2->get_allele(j) != px->_p1._e2->node);
+    }while(*P1->get_allele(i) != px->_p1._e1->node && *P1->get_allele(i) != px->_p1._e2->node);
     
 }
 

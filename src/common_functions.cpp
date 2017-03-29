@@ -28,8 +28,8 @@ void random_shuffle_templated(uint64_t n_elements, T * vector, uint64_t seed, st
         vector[i] = vector[curr_num];
         vector[curr_num] = aux;
     }
-
 }
+
 template <class T>
 void restart_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp){
     for(uint64_t i=0;i<n_nodes;i++){

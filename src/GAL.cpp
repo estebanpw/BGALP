@@ -69,6 +69,7 @@ int main(int argc, char **av) {
     // Random numbers for the manager
     std::default_random_engine generator = std::default_random_engine(time(NULL));
     std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
+    std::uniform_int_distribution<uint64_t> u_d_indiv = std::uniform_int_distribution<uint64_t>(0, n_individuals-1);
 
     // Allocate chromosomes
     Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
@@ -116,7 +117,7 @@ int main(int argc, char **av) {
     */
 
     // Get k random solutions
-    uint64_t random_sols = 10;
+    uint64_t random_sols = 5;
     
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -191,7 +192,7 @@ int main(int argc, char **av) {
 
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
-        locally_optimals[i].print_chromosome();
+        ind[i].print_chromosome();
     }
     
     // Allocate edge tables, FIFO queue and memory pool
@@ -213,8 +214,8 @@ int main(int argc, char **av) {
             memset(e_table, 0x0, n_alleles*sizeof(Edge_T<uint64_t> *)); // Contents are handled by the pool
 
             // Fill edge table for two random solutions
-            fill_edge_table(&locally_optimals[i], e_table, mp);
-            fill_edge_table(&locally_optimals[j], e_table, mp);
+            fill_edge_table(&ind[i], e_table, mp);
+            fill_edge_table(&ind[j], e_table, mp);
             
             // Calculate degree
             generate_degree(n_alleles, e_table);
@@ -241,9 +242,9 @@ int main(int argc, char **av) {
                 find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
                 if(px._p1._e1 != NULL){
 
-                    locally_optimals[i].print_chromosome();
-                    locally_optimals[j].print_chromosome();
-                    apply_PX_chromosomes(n_alleles, e_table, &px, &locally_optimals[i], &locally_optimals[j], offspring_1, offspring_2);
+                    ind[i].print_chromosome();
+                    ind[j].print_chromosome();
+                    apply_PX_chromosomes(n_alleles, e_table, &px, &ind[i], &ind[j], offspring_1, offspring_2);
                     // Recompute fitness 
                     offspring_1->compute_fitness((void *) &tsp);
                     offspring_1->verify_chromosome("(1) after PX");
@@ -255,8 +256,8 @@ int main(int argc, char **av) {
                     offspring_2->print_chromosome();
                     printf("$$$$$$$$$$$$$\n");
 
-                    std::cout << "#\t" << *locally_optimals[i].get_fitness() << "\t";
-                    std::cout << *locally_optimals[j].get_fitness() << "\t";
+                    std::cout << "#\t" << *ind[i].get_fitness() << "\t";
+                    std::cout << *ind[j].get_fitness() << "\t";
                     std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
 
                     //std::cout << "---------------" << std::endl;
