@@ -178,6 +178,7 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             degree = 0;
             n_commons = 0;
             ptr = e_table[i]->next;
+            e_table[i]->already_tried_to_partitionate = false;
             while(ptr != NULL){
                 degree++;
                 if(ptr->common == COMMON) n_commons++;
@@ -197,10 +198,11 @@ bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint
     uint64_t degree = 0;
     for(uint64_t i=0;i<n_nodes;i++){
         if(e_table[i] != NULL && e_table[i]->partition == -1){
-            if(degree < e_table[i]->degree){
+            if(degree < e_table[i]->degree && e_table[i]->already_tried_to_partitionate == false){
                 degree = e_table[i]->degree;
                 *node_id = i;
                 found = true;
+                e_table[i]->already_tried_to_partitionate = true;
             }
         }
     }
@@ -214,6 +216,14 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
     Edge_T<T> * ptr = NULL;
     if(e_table[init_node] == NULL) return;
 
+    // Check if at least it has uncommon edges 
+    ptr = e_table[init_node]->next;
+    uint64_t count_uncommon = 0;
+    while(ptr != NULL){
+        if(ptr->common == UNCOMMON) count_uncommon++;
+        ptr = ptr->next;
+    }
+    if(count_uncommon == 0) return;
 
     ptr = e_table[init_node]->next;
     e_table[init_node]->partition = partition_label;
@@ -241,84 +251,18 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
     }
 }
 
-/*
-template <class T>
-Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
-
-    Edge_T<T> * ptr, * master_ptr, * previous;
-    Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
-
-    // Extend in both directions until one node with degree > 2 is found
-    master_ptr = e_table[i];
-    previous = master_ptr;
-    ptr = master_ptr->next;
-    while(master_ptr->degree == 2){
-        //printf("Can i get stuck here? %" PRIu64"\n", ptr->node); getchar();
-        
-        // Traverse in one direction
-        if(ptr->node != previous->node){
-            //printf("ptr->node %" PRIu64" != previous->node %" PRIu64"\n", ptr->node, previous->node);
-            previous = master_ptr;
-            master_ptr = e_table[ptr->node];
-            ptr = master_ptr->next;
-        }else{
-            // In case the first one is the previous one
-            //printf("ptr->node %" PRIu64" == previous->node %" PRIu64"\n", ptr->node, previous->node);
-            previous = master_ptr;
-            master_ptr = e_table[ptr->next->node];
-            ptr = master_ptr->next;
-            if(master_ptr->next->node != previous->node) ptr = master_ptr->next; else ptr = master_ptr->next->next;     // 220 
-        }
-    }
-    
-    // The surrogate should be in previous (since master_ptr is no longer of degree 2)
-    surrogate._e1 = previous;
-    // Same path but backwards
-    master_ptr = e_table[i];            // 0
-    previous = master_ptr;              // 0
-    ptr = master_ptr->next->next;       // 214
-    while(master_ptr->degree == 2){
-
-        //printf("Or here? %" PRIu64"\n", ptr->node); getchar();
-        //previous = master_ptr;          
-        // Traverse in one direction
-        if(ptr->node != previous->node){   
-            //printf("ptr->node %" PRIu64" != previous->node %" PRIu64"\n", ptr->node, previous->node);
-            previous = master_ptr;              // 0
-            master_ptr = e_table[ptr->node];    // 214
-            ptr = master_ptr->next;             // 0
-        }else{
-            // In case the first one is the previous one
-            //printf("ptr->node %" PRIu64" == previous->node %" PRIu64"\n", ptr->node, previous->node);
-            previous = master_ptr;                  // 214
-            master_ptr = e_table[ptr->next->node];  // 201
-            if(master_ptr->next->node != previous->node) ptr = master_ptr->next; else ptr = master_ptr->next->next;     // 211
-
-        }
-        
-    }
-    // @201: 214*, 211*,
-    // @214: 0*, 201*,
-    // @0: 1*, 214*,
-
-    // The other end of the surrogate is in previous
-    surrogate._e2 = previous;
-
-    return surrogate;
-}
-*/
 template <class T>
 Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 
     Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
     Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
-
+    
     // Extend in both directions until one node with degree > 2 is found
     uint64_t master_node = i;
     route_start = e_table[i];
     route_end = NULL;
     last_replaced = e_table[i];
-    
+    //printf("%" PRId64", ", e_table[last_replaced->node]->partition);
     ptr = e_table[i]->next;
     
 
@@ -330,9 +274,14 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
         }
         if(ptr != NULL && ptr->node != last_replaced->node){
             // Update previous so we wont traverse it again 
+            
+            //printf("%" PRId64", ", e_table[ptr->node]->partition);
             last_replaced = e_table[master_node];
             master_node = ptr->node;
             route_end = e_table[ptr->node];
+
+            if(route_end->partition != -1 && route_start->partition != route_end->partition) goto finish;
+
             // Not null implies we found common edge 
             // Save this node as last and look for more 
             ptr = e_table[ptr->node]->next;
@@ -343,7 +292,8 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
         }
     }
 
-    
+    finish:
+    //printf("\n");
     surrogate._e1 = route_start;
     surrogate._e2 = route_end;
 
@@ -366,22 +316,23 @@ template <class T>
 void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * surrogates){
 
     Pair<Edge_T<T>> p1, p2;
-    
     uint64_t j;
     for(uint64_t i=0;i<n_nodes;i++){
 
         // Only find surrogate edges from one vertex that is connected to "something"
         if(e_table[i]->n_commons == 1){
             p1 = replace_surrogate_by_one(e_table, i);
+            //printf("This previous\n");
 
             if(p1._e1 != NULL && p1._e2 != NULL){
 
                 if(p1._e1->partition != -1 && p1._e2->partition != -1 && p1._e1->partition != p1._e2->partition){
-                    for(j=0;j<n_nodes;j++){
+                    for(j=i+1;j<n_nodes;j++){
                         if(i != j){
 
                             if(e_table[j]->n_commons == 1){
                                 p2 = replace_surrogate_by_one(e_table, j);
+                                //printf("With this one\n");
 
                                 if(p2._e1 != NULL && p2._e2 != NULL){
                                     if(p2._e1->partition != -1 && p2._e2->partition != -1 && p2._e1->partition != p2._e2->partition){
@@ -396,8 +347,8 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
                                                 if(!adjacency_condition_1 && !adjacency_condition_2 && !adjacency_condition_3 && !adjacency_condition_4){
                                                     // Partition is feasible if they connect the same partitions 
                                                     std::cout << "PX is feasible: " << std::endl;
-                                                    std::cout << "SG(1) = " << p1._e1->node << ", " << p1._e2->node << std::endl;
-                                                    std::cout << "SG(2) = " << p2._e1->node << ", " << p2._e2->node << std::endl;
+                                                    std::cout << "SG(1) = " << p1._e1->node << "(" << p1._e1->partition << " ), " << p1._e2->node << "(" << p1._e2->partition << ")" << std::endl;
+                                                    std::cout << "SG(2) = " << p2._e1->node << "(" << p2._e1->partition << " ), " << p2._e2->node << "(" << p2._e2->partition << ")" << std::endl;
                                                     surrogates->_p1 = p1;
                                                     surrogates->_p2 = p2;
                                                     return;
@@ -448,21 +399,21 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
     // Check that between swath_start and swath_end there are no other nodes in between in P2
     bool go_backwards_P2 = false;
     for(i=1;i<n_nodes;i++){
-        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P2 = true; goto escape_2; }
-        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P2 = true; goto escape_2; }
-        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e2->node){ goto escape_2; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P2 = true; goto escape_2_O1; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P2 = true; goto escape_2_O1; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e2->node){ goto escape_2_O1; }
     }
 
-    escape_2:
+    escape_2_O1:
     // Check that between swath_start and swath_end there are no other nodes in between in P2
     bool go_backwards_P1 = false;
     for(i=1;i<n_nodes;i++){
-        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P1 = true; goto escape_1; }
-        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P1 = true; goto escape_1; }
-        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e2->node){ goto escape_1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P1 = true; goto escape_1_O1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P1 = true; goto escape_1_O1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e2->node){ goto escape_1_O1; }
     }
 
-    escape_1:
+    escape_1_O1:
 
     // At this point we have the swath position starting and ending in both P1 and P2 
     // and we know if the swaths are to be copied from left to right or right to left 
@@ -489,241 +440,67 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
         offspring_1->set_allele(i, P2->get_allele(j));
 
     }while(*P2->get_allele(j) != px->_p2._e1->node && *P2->get_allele(j) != px->_p2._e2->node);
-
-    
-    
-
     /*
+    
+    // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REPEAT 
+    for(i=0;i<n_nodes;i++){
+        // Find first second in P1 
+        if(*P1->get_allele(i) == px->_p2._e1->node) swath_start_P1 = i;
+        if(*P1->get_allele(i) == px->_p2._e2->node) swath_end_P1 = i;
+        // Find the second swath in P2 
+        if(*P2->get_allele(i) == px->_p2._e1->node) swath_start_P2 = i;
+        if(*P2->get_allele(i) == px->_p2._e2->node) swath_end_P2 = i;
+        
+    }
 
-    i = common_start_P1;
-    j = common_start_P2;
-    p = common_start_P1;
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    go_backwards_P2 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e1->node){ go_backwards_P2 = true; goto escape_2_O2; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e2->node){ go_backwards_P2 = true; goto escape_2_O2; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e2->node){ goto escape_2_O2; }
+    }
+
+    escape_2_O2:
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    go_backwards_P1 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e1->node){ go_backwards_P1 = true; goto escape_1_O2; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e2->node){ go_backwards_P1 = true; goto escape_1_O2; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e2->node){ goto escape_1_O2; }
+    }
+
+    escape_1_O2:
+
+    // At this point we have the swath position starting and ending in both P1 and P2 
+    // and we know if the swaths are to be copied from left to right or right to left 
+
+    // Proceed to copy 
+    i = swath_end_P1;
+    j = swath_end_P2;
+
     do{
 
-        // I advance by copying alleles. Every time I hit a node that belongs to a partition, I switch to copying from the other one
-        if(current_copying == P1){
-            std::cout << "I am at " << p << " copying from P1 " << i << " which is " << *P1->get_allele(i) << std::endl;
-            getchar();
-            offspring_1->set_allele(p, P1->get_allele(i));
+        // Advance
+        if(go_backwards_P1){
+            if(i>0) i--; else i=n_nodes-1;
         }else{
-            std::cout << "I am at " << p << " copying from P2 " << i << " which is " << *P2->get_allele(i) << std::endl;
-            getchar();
-            offspring_1->set_allele(p, P2->get_allele(j));
+            i = (i + 1) % n_nodes;
         }
-        
-        p = (p + 1) % chrom_length;
-        i = (i + 1) % chrom_length;
-        j = (j + 1) % chrom_length;
-
-        if(current_copying == P1){
-            // If we hit, change
-
-            if(can_advance && (*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node)){
-                current_copying = P2;
-                can_advance = false;
-            }
-
-            if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){
-                can_advance = true;
-            }
-             
+        if(go_backwards_P2){
+            if(j>0) j--; else j=n_nodes-1;
         }else{
-            // If we hit, change
-            if(can_advance && (*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node)){
-                current_copying = P1;
-                can_advance = false;
-            }
-
-            if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){
-                can_advance = true;
-            } 
-            
+            j = (j + 1) % n_nodes;
         }
 
+        // Copy swath from P2 in offspring 1
+        offspring_2->set_allele(i, P2->get_allele(j));
 
-    }while(i != common_start_P1);
-
-    //
-    // Do the exact same thing but starting with P2 
-    current_copying = P2;
-    i = common_start_P1;
-    j = common_start_P2;
-    p = j;
-    do{
-
-        // I advance by copying alleles. Every time I hit a node that belongs to a partition, I switch to copying from the other one
-        if(current_copying == P1){
-            offspring_2->set_allele(p, P1->get_allele(i));
-        }else{
-            offspring_2->set_allele(p, P2->get_allele(j));
-        }
-        
-        p = (p + 1) % chrom_length;
-        i = (i + 1) % chrom_length;
-        j = (j + 1) % chrom_length;
-
-        if(current_copying == P1){
-            // If we hit, change
-
-            if(can_advance && (*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node)){
-                current_copying = P2;
-                can_advance = false;
-            }
-
-            if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){
-                can_advance = true;
-            }
-             
-        }else{
-            // If we hit, change
-            if(can_advance && (*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node)){
-                current_copying = P1;
-                can_advance = false;
-            }
-
-            if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){
-                can_advance = true;
-            } 
-            
-        }
-
-
-    }while(i != common_start_P2);
-
+    }while(*P2->get_allele(j) != px->_p1._e1->node && *P2->get_allele(j) != px->_p1._e2->node);
     */
 }
 
-/*
-template <class T>
-void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1, Chromosome<T> * offspring_2){
-    
-    uint64_t PX_start_parent_1 = 0, PX_end_parent_1 = 0, PX_start_parent_2 = 0, PX_end_parent_2 = 0;
-    uint64_t i, j;
-    bool goes_forward_P1 = true, goes_forward_P2 = true;
 
-
-    // Find pos(px1), pos(px2) in P1, P2
-    for(i=0;i<n_nodes;i++){
-        if(*P1->get_allele(i) == px->_p1._e1->node) PX_start_parent_1 = i;
-        if(*P1->get_allele(i) == px->_p2._e1->node) PX_end_parent_1 = i;
-        if(*P2->get_allele(i) == px->_p1._e1->node) PX_start_parent_2 = i;
-        if(*P2->get_allele(i) == px->_p2._e1->node) PX_end_parent_2 = i;
-    }
-    
-    // Put positions in order    
-    uint64_t aux = PX_start_parent_1;
-    PX_start_parent_1 = min(PX_start_parent_1, PX_end_parent_1);
-    PX_end_parent_1 = max(aux, PX_end_parent_1);
-
-    aux = PX_start_parent_2;
-    PX_start_parent_2 = min(PX_start_parent_2, PX_end_parent_2);
-    PX_end_parent_2 = max(aux, PX_end_parent_2);
-
-    // Detect whether we have to copy forward of backwards
-    i = (PX_start_parent_1 + 1) % n_nodes;
-    while(i != PX_end_parent_1){
-        if(*P1->get_allele(i) == px->_p1._e2->node || *P1->get_allele(i) == px->_p2._e2->node){ goes_forward_P1 = false; break; }
-        i = (i + 1) % n_nodes;
-    }
-    i = (PX_start_parent_2 + 1) % n_nodes;
-    while(i != PX_end_parent_2){
-        if(*P2->get_allele(i) == px->_p1._e2->node || *P2->get_allele(i) == px->_p2._e2->node){ goes_forward_P2 = false; break; }
-        i = (i + 1) % n_nodes;
-    }
-
-    //printf("Goes f? %d %d\n", (int) goes_forward_P1, (int) goes_forward_P1);
-    
-    // Copy P1 in offspring 1 and 2
-    for(i=0;i<n_nodes;i++){
-        offspring_1->set_allele(i, P1->get_allele(i));
-        offspring_2->set_allele(i, P1->get_allele(i));
-    }
-
-    // Copy forward or backwards from P2 to offsprings
-    i = (PX_end_parent_2) % n_nodes;
-    j = (PX_end_parent_1) % n_nodes;
-    //printf("Copying from %" PRIu64" to %" PRIu64"\n", i, PX_start_parent_2);
-    //printf("Into %" PRIu64" to %" PRIu64"\n", j, PX_start_parent_1);
-
-    do{
-        
-        offspring_1->set_allele(j, (P2->get_allele(i)));
-        if(goes_forward_P1){
-            i = (i + 1) % n_nodes;
-        }else{
-            if(i == 0) i = n_nodes-1; else i--;
-        }
-        if(goes_forward_P2){
-            j = (j + 1) % n_nodes;
-        }else{
-            if(j == 0) j = n_nodes-1; else j--;
-        }
-
-    }while(i != PX_start_parent_2);
-        
-    // REPEAT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    goes_forward_P1 = true, goes_forward_P2 = true;
-
-    // Find pos(px1), pos(px2) in P1, P2
-    for(i=0;i<n_nodes;i++){
-        if(*P1->get_allele(i) == px->_p1._e2->node) PX_start_parent_1 = i;
-        if(*P1->get_allele(i) == px->_p2._e2->node) PX_end_parent_1 = i;
-        if(*P2->get_allele(i) == px->_p1._e2->node) PX_start_parent_2 = i;
-        if(*P2->get_allele(i) == px->_p2._e2->node) PX_end_parent_2 = i;
-    }
-    
-    // Put positions in order    
-    aux = PX_start_parent_1;
-    PX_start_parent_1 = min(PX_start_parent_1, PX_end_parent_1);
-    PX_end_parent_1 = max(aux, PX_end_parent_1);
-
-    aux = PX_start_parent_2;
-    PX_start_parent_2 = min(PX_start_parent_2, PX_end_parent_2);
-    PX_end_parent_2 = max(aux, PX_end_parent_2);
-
-    i = (PX_start_parent_1 + 1) % n_nodes;
-    while(i != PX_end_parent_1){
-        if(*P1->get_allele(i) == px->_p1._e1->node || *P1->get_allele(i) == px->_p2._e1->node){ goes_forward_P1 = false; break; }
-        i = (i + 1) % n_nodes;
-    }
-    i = (PX_start_parent_2 + 1) % n_nodes;
-    while(i != PX_end_parent_2){
-        if(*P2->get_allele(i) == px->_p1._e1->node || *P2->get_allele(i) == px->_p2._e1->node){ goes_forward_P2 = false; break; }
-        i = (i + 1) % n_nodes;
-    }
-
-    //printf("Goes f? %d %d\n", (int) goes_forward_P1, (int) goes_forward_P1);
-    
-    
-    // Just copy from start until finding end from P2 in offspring 1 and 2
-    i = (PX_end_parent_2) % n_nodes;
-    j = (PX_end_parent_1) % n_nodes;
-    //printf("Copying from %" PRIu64" to %" PRIu64"\n", i, PX_start_parent_2);
-    //printf("Into %" PRIu64" to %" PRIu64"\n", j, PX_start_parent_1);
-
-    do{
-        
-        offspring_2->set_allele(j, (P2->get_allele(i)));
-        if(goes_forward_P1){
-            i = (i + 1) % n_nodes;
-        }else{
-            if(i == 0) i = n_nodes-1; else i--;
-        }
-        if(goes_forward_P2){
-            j = (j + 1) % n_nodes;
-        }else{
-            if(j == 0) j = n_nodes-1; else j--;
-        }
-
-    }while(i != PX_start_parent_2);
-
-    
-    
-
-}
-
-*/
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
 template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);

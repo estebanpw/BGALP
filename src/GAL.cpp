@@ -116,7 +116,7 @@ int main(int argc, char **av) {
     */
 
     // Get k random solutions
-    uint64_t random_sols = 5;
+    uint64_t random_sols = 10;
     
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -229,55 +229,59 @@ int main(int argc, char **av) {
                     find_connected_components(node_id, current_label, e_table, &FIFO_queue);
                     current_label++;
                 }
-
             }while(keep_partitioning);
             //node_id = get_highest_node_unpartitioned(n_alleles, e_table);
             //find_connected_components(node_id, 1, e_table, &FIFO_queue);
-            
-            // Find if partition crossover is feasible
-            Quartet<Edge_T<uint64_t>> px;
-            find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
-            if(px._p1._e1 != NULL){
+            print_edge_tables(n_alleles, e_table);
+            uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
+            std::cout << "Number of partitions: " << n_parts << std::endl;
+            if(n_parts == 2){
+                // Find if partition crossover is feasible
+                Quartet<Edge_T<uint64_t>> px;
+                find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
+                if(px._p1._e1 != NULL){
 
-                locally_optimals[i].print_chromosome();
-                locally_optimals[j].print_chromosome();
-                apply_PX_chromosomes(n_alleles, e_table, &px, &locally_optimals[i], &locally_optimals[j], offspring_1, offspring_2);
-                // Recompute fitness 
-                offspring_1->compute_fitness((void *) &tsp);
-                offspring_1->verify_chromosome("(1) after PX");
-                offspring_2->compute_fitness((void *) &tsp);
-                offspring_2->verify_chromosome("(2) after PX");
+                    locally_optimals[i].print_chromosome();
+                    locally_optimals[j].print_chromosome();
+                    apply_PX_chromosomes(n_alleles, e_table, &px, &locally_optimals[i], &locally_optimals[j], offspring_1, offspring_2);
+                    // Recompute fitness 
+                    offspring_1->compute_fitness((void *) &tsp);
+                    offspring_1->verify_chromosome("(1) after PX");
+                    offspring_2->compute_fitness((void *) &tsp);
+                    offspring_2->verify_chromosome("(2) after PX");
 
-                printf("$$$$$$$$$$$$$\n");
-                offspring_1->print_chromosome();
-                offspring_2->print_chromosome();
-                printf("$$$$$$$$$$$$$\n");
+                    printf("$$$$$$$$$$$$$\n");
+                    offspring_1->print_chromosome();
+                    offspring_2->print_chromosome();
+                    printf("$$$$$$$$$$$$$\n");
 
-                std::cout << "#\t" << *locally_optimals[i].get_fitness() << "\t";
-                std::cout << *locally_optimals[j].get_fitness() << "\t";
-                std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
+                    std::cout << "#\t" << *locally_optimals[i].get_fitness() << "\t";
+                    std::cout << *locally_optimals[j].get_fitness() << "\t";
+                    std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
 
-                //std::cout << "---------------" << std::endl;
-                //locally_optimals[i].print_chromosome();
-                //locally_optimals[j].print_chromosome();
-                //std::cout << "\tgenerates" << std::endl;
-                //offspring_1->print_chromosome();
-                after_px_2opt->set_fitness(LDBL_MAX);
-                run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
-                //offspring_1->verify_chromosome("(1) after PX and 2-opt");
-                std::cout << *offspring_1->get_fitness() << "\t";
-                
+                    //std::cout << "---------------" << std::endl;
+                    //locally_optimals[i].print_chromosome();
+                    //locally_optimals[j].print_chromosome();
+                    //std::cout << "\tgenerates" << std::endl;
+                    //offspring_1->print_chromosome();
+                    after_px_2opt->set_fitness(LDBL_MAX);
+                    run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
+                    //offspring_1->verify_chromosome("(1) after PX and 2-opt");
+                    std::cout << *offspring_1->get_fitness() << "\t";
+                    
 
-                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
-                //offspring_2->print_chromosome();
+                    //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
+                    //offspring_2->print_chromosome();
 
-                after_px_2opt->set_fitness(LDBL_MAX);
-                run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
-                //offspring_1->verify_chromosome("(2) after PX and 2-opt");
-                std::cout << *offspring_2->get_fitness() << std::endl;
-                //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
+                    after_px_2opt->set_fitness(LDBL_MAX);
+                    run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
+                    //offspring_1->verify_chromosome("(2) after PX and 2-opt");
+                    std::cout << *offspring_2->get_fitness() << std::endl;
+                    //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
 
+                }
             }
+            
         }
     }
     

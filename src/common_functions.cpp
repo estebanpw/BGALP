@@ -59,6 +59,16 @@ void print_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table){
 }
 
 template <class T>
+uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<T> ** e_table){
+    int64_t high = -1;
+    for(uint64_t i=0;i<n_nodes;i++){
+        if(high < e_table[i]->partition) high = e_table[i]->partition;
+    }
+    if(high == -1) return 0;
+    return (uint64_t) high;
+}
+
+template <class T>
 bool find_in_vector(std::vector<T> * v, T key){
     for(typename std::vector<T>::iterator it = v->begin() ; it != v->end(); ++it){
         if(*it == key) return true;
@@ -70,3 +80,4 @@ template void random_shuffle_templated<uint64_t>(uint64_t n_elements, uint64_t *
 template void restart_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
 template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
+template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
