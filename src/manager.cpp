@@ -126,8 +126,8 @@ void Manager<T>::run(uint64_t n_itera){
 
             #ifdef VERBOSE
             // Some info
-            //fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
-            //fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
+            fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
+            fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
             #endif
 
             // Crossover function here
@@ -140,12 +140,14 @@ void Manager<T>::run(uint64_t n_itera){
             
             #ifdef VERBOSE
             //printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
-            //fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
+            fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
             //getchar();
             #endif
 
             // The worst individual is always replaced
             this->population[j]->replace_worst(replacement);
+
+                        
 
             // Find new worst 
             second_worst = 0;
@@ -157,6 +159,7 @@ void Manager<T>::run(uint64_t n_itera){
             }
             this->population[j]->set_worst(second_worst);
             
+            
             // Update best index
             if(this->maximize && *replacement->get_fitness() >= *this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(replace_pos);
             if(!this->maximize && *replacement->get_fitness() <= *this->population[j]->get_best_individual()->get_fitness()) this->population[j]->set_best(replace_pos);
@@ -166,7 +169,7 @@ void Manager<T>::run(uint64_t n_itera){
             if(i % print_time == 0){
                 //  this->population[j]->print_all_fitness();
                 //fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
-                std::cout << "I(" << i<< ") :: " <<  *this->population[j]->get_best_individual()->get_fitness() <<" (%" <<(uint64_t)*this->population[j]->get_best_individual()->get_fitness() <<") @" << this->population[j]->get_best()<<"\n"; 
+                std::cout << "I(" << i<< ") :: " <<  *this->population[j]->get_best_individual()->get_fitness() <<" @" << this->population[j]->get_best()<<"\n"; 
                 //getchar();
             } 
             

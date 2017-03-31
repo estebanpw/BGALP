@@ -4,11 +4,14 @@
 #include <cstdio>
 #include <math.h>
 #include <inttypes.h>
+#include "common_functions.h"
 #include "defs.h"
 
 #define TEXT "rt"
 #define BINARY "rb"
 #define __STDC_FORMAT_MACROS
+#define INIT_SEQS 10000
+
 class Readstream{
     private:
     FILE * input = NULL;
@@ -21,4 +24,5 @@ class Readstream{
     ~Readstream();
 };
 
-void reading_function_TSP(FILE * input, void * type_structure);
+void reading_function_TSP(FILE * input, void * type_structure); // For symmetric TSP 
+void reading_function_LB_reads(FILE * input, void * type_structure); // Load balancing of metagenomic reads

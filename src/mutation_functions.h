@@ -7,3 +7,6 @@
 #define __STDC_FORMAT_MACROS
 template <class T>
 void mutation_function_TSP(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p);
+
+template <class T>
+void mutation_function_LB(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p);

@@ -30,6 +30,8 @@ void random_shuffle_templated(uint64_t n_elements, T * vector, uint64_t seed, st
     }
 }
 
+
+
 template <class T>
 void restart_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp){
     for(uint64_t i=0;i<n_nodes;i++){
@@ -77,6 +79,7 @@ bool find_in_vector(std::vector<T> * v, T key){
 }
 
 template void random_shuffle_templated<uint64_t>(uint64_t n_elements, uint64_t * vector, uint64_t seed, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
+template void random_shuffle_templated<unsigned char>(uint64_t n_elements, unsigned char * vector, uint64_t seed, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
 template void restart_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
 template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);

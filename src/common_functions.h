@@ -8,6 +8,7 @@
 #include <iostream>
 #include <math.h>
 #include "defs.h"
+#include "chromosome.h"
 #include "memory_pool.h"
 #define __STDC_FORMAT_MACROS
 /**

@@ -60,11 +60,11 @@ void reading_function_TSP(FILE * input, void * type_structure){
             aux2[id-1] = y;
         }
     }
-
+    /*
     int64_t xd, yd;
     long double rij;
     long double tij;
-
+    */
     // Calculate distances
     for(uint64_t i=0;i<total;i++){
         for(uint64_t j=0;j<total;j++){
@@ -93,4 +93,63 @@ void reading_function_TSP(FILE * input, void * type_structure){
 
     std::free(aux);
     std::free(aux2);
+}
+
+
+void reading_function_LB_reads(FILE * input, void * type_structure){
+    Sol_LB_reads * LB_mat = (Sol_LB_reads *) type_structure;
+
+
+    //Current length of array and variables for the buffer
+    uint64_t idx = 0, r = 0;
+    //To force reading from the buffer
+    idx = READBUF + 1;
+    
+    // Vector to read in batches
+    char * temp_seq_buffer = NULL;
+    if ((temp_seq_buffer = (char *) std::calloc(READBUF, sizeof(char))) == NULL) {
+        throw "Could not allocate memory for read buffer";
+    }
+    // Starting size of lengths of sequences
+    LB_mat->lengths = (uint64_t *) std::malloc(INIT_SEQS * sizeof(uint64_t));
+    if(LB_mat->lengths == NULL) throw "Could not allocate lengths of reads";
+    LB_mat->current_max = 0;
+    // Number of reallocs
+    uint64_t reallocs = 1;
+
+
+
+    char c = '\0'; //Initialize
+    uint64_t curr_len, n_sequences = 0;
+
+
+    c = buffered_fgetc(temp_seq_buffer, &idx, &r, input);
+    while((!feof(input) || (feof(input) && idx < r))){
+
+            if(c == '>'){
+                    n_sequences++;
+                    curr_len = 0;
+                    while(c != '\n') c = buffered_fgetc(temp_seq_buffer, &idx, &r, input);
+
+                    while((!feof(input) || (feof(input) && idx < r)) && c != '>'){
+                        c = buffered_fgetc(temp_seq_buffer, &idx, &r, input);
+                        curr_len++;
+                    }
+
+                    if(n_sequences > INIT_SEQS*reallocs){
+                        reallocs++;
+                        LB_mat->lengths = (uint64_t *) std::realloc(LB_mat->lengths, reallocs*INIT_SEQS);
+                        if(LB_mat->lengths == NULL) throw "Could not reallocate sequence lengths";
+                    }
+                    LB_mat->lengths[n_sequences-1] = curr_len;
+                    // The initial fitness maximum is assigning all tasks to just one thread
+                    LB_mat->current_max += (long double) curr_len; 
+
+            }else{
+                c = buffered_fgetc(temp_seq_buffer, &idx, &r, input);
+            }
+    }
+    LB_mat->n = n_sequences;
+
+    std::free(temp_seq_buffer);
 }

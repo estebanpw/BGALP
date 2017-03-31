@@ -34,7 +34,7 @@ void Chromosome<T>::print_chromosome(){
     std::cout << "\t@(" << this->position.x <<  ", " << this->position.y << ", " << this->position.z << ") L: " << this->length << std::endl;
     std::cout << "\tF: " << this->fitness << " at " << this << std::endl;
     for(uint64_t i=0;i<this->length;i++){
-        std::cout << this->chromosome[i] << ", ";
+        std::cout << (uint64_t) this->chromosome[i] << ", ";
     }
     std::cout << std::endl;
 }
@@ -67,6 +67,7 @@ void Chromo_rucksack<T>::compute_fitness(void * solution_info){
 template <class T>
 Chromo_subsetsum<T>::Chromo_subsetsum(uint64_t alleles, Position p, INITIALIZER init_type){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    if(this->chromosome == NULL) throw "Could not allocate chromosome";
     this->length = alleles;
     this->fitness = 0;
     this->position = p;
@@ -98,6 +99,7 @@ void Chromo_subsetsum<T>::compute_fitness(void * solution_info){
 template <class T>
 Chromo_TSP<T>::Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    if(this->chromosome == NULL) throw "Could not allocate chromosome";
     this->length = alleles;
     this->fitness = LDBL_MAX;
     this->position = p;
@@ -142,6 +144,46 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
     }
 }
 
+template <class T>
+Chromo_LB<T>::Chromo_LB(uint64_t alleles, Position p, uint64_t n_threads, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d){
+    this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    if(this->chromosome == NULL) throw "Could not allocate chromosome";
+    this->length = alleles;
+    this->fitness = LDBL_MAX;
+    this->position = p;
+    uint64_t i;
+    for(i=0;i<alleles;i++){
+        this->chromosome[i] = (unsigned char) (i % n_threads);
+    }
+    
+    srand(time(NULL));
+    random_shuffle_templated(this->length, this->chromosome, rand()%100, g, u_d);
+    
+}
+
+template <class T>
+void Chromo_LB<T>::compute_fitness(void * solution_info){
+    Sol_LB_reads * lb = (Sol_LB_reads *) solution_info;
+    long double fitness = 0;
+    uint64_t trails[lb->threads];
+    memset(trails, 0, lb->threads*sizeof(uint64_t));
+    // Compute trails 
+    for(uint64_t i=0;i<lb->n;i++){
+        trails[(uint64_t)this->chromosome[i]] += lb->lengths[i];
+    }
+    uint64_t max_len = 0;
+    // Find max trail
+    for(uint64_t i=0;i<lb->threads;i++){
+        if(max_len < trails[i]) max_len = trails[i];
+    }
+    for(uint64_t i=0;i<lb->threads;i++){
+        fitness += max_len - trails[i];
+    }
+    // Minimize distance with the longest execution trace    
+    this->fitness = fitness;
+    
+}
+
 
 template class Chromosome<double>;
 template class Chromosome<unsigned char>;
@@ -149,3 +191,4 @@ template class Chromosome<uint64_t>;
 template class Chromo_rucksack<double>;
 template class Chromo_subsetsum<unsigned char>;
 template class Chromo_TSP<uint64_t>;
+template class Chromo_LB<unsigned char>;

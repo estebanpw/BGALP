@@ -17,4 +17,12 @@ void mutation_function_TSP(Chromosome<T> * a, Population<T> * pop, Manager<T> * 
     }
 }
 
+template <class T>
+void mutation_function_LB(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p){
+    return;
+}
+
+
 template void mutation_function_TSP<uint64_t>(Chromosome<uint64_t> * a, Population<uint64_t> * pop, Manager<uint64_t> * m, long double p);
+template void mutation_function_TSP<unsigned char>(Chromosome<unsigned char> * a, Population<unsigned char> * pop, Manager<unsigned char> * m, long double p);
+template void mutation_function_LB(Chromosome<unsigned char> * a, Population<unsigned char> * pop, Manager<unsigned char> * m, long double p);

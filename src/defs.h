@@ -1,7 +1,7 @@
 #pragma once
 
 
-#define READBUF 1000
+#define READBUF 1024*1024*1024 // 1 MB
 #define POOL_SIZE 1024*1024*1024 //1 MB 
 #define LIST_POOL_SIZE 128
 #define MAX_PATH 2048
@@ -58,6 +58,14 @@ struct Sol_subsetsum{
 struct Sol_TSP_matrix{
     long double ** dist;
     uint64_t n;
+};
+
+// Struct for load balancing metagenomic reads 
+struct Sol_LB_reads{
+    uint64_t * lengths;
+    uint64_t n;
+    long double current_max;
+    unsigned char threads;
 };
 
 // Struct for edge tables 
