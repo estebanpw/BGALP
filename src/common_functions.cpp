@@ -1,5 +1,5 @@
 #include "common_functions.h"
-
+#define __STDC_FORMAT_MACROS
 
 void terror(const char *s) {
     printf("ERR**** %s ****\n", s);

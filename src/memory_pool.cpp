@@ -1,5 +1,5 @@
 #include "memory_pool.h"
-
+#define __STDC_FORMAT_MACROS
 
 memory_pool::memory_pool(uint64_t pool_size)
 {

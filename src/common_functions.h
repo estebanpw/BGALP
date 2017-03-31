@@ -9,7 +9,7 @@
 #include <math.h>
 #include "defs.h"
 #include "memory_pool.h"
-
+#define __STDC_FORMAT_MACROS
 /**
  * Print the error message 's' and exit(-1)
  */

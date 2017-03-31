@@ -20,7 +20,7 @@
 #include "local_search_functions.h"
 
 #define THE_MAX 1000
-
+#define __STDC_FORMAT_MACROS
 int DEBUG_ACTIVE = 0;
 
 
@@ -102,7 +102,7 @@ int main(int argc, char **av) {
     // Put the manager to run
     manager->run(n_itera);
 
-    fprintf(stdout, "Best individual fitness: %.3Le\n", *manager->get_best_individual()->get_fitness());
+    std::cout << "Best individual fitness:" << *manager->get_best_individual()->get_fitness() << std::endl;
     manager->get_best_individual()->print_chromosome();
     //getchar();
 
@@ -116,8 +116,15 @@ int main(int argc, char **av) {
     getchar();
     */
 
+
+    
+
     // Get k random solutions
-    uint64_t random_sols = 5;
+    uint64_t random_sols = 10;
+
+    // Pthreads 
+    two_opt_args args[random_sols];
+    pthread_t threads[random_sols];
     
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -132,6 +139,9 @@ int main(int argc, char **av) {
     if(locally_optimals == NULL) throw "Could not allocate locally optimal individuals";
     for(uint64_t i=0;i<random_sols;i++){
         new (&locally_optimals[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+        args[i].a = &ind[i];
+        args[i].b = &locally_optimals[i];
+        args[i].solution = &tsp;
     }
     
     /*
@@ -144,7 +154,16 @@ int main(int argc, char **av) {
     
     //Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     //Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    
+    /*
+    uint64_t values[] = {0,7,37,30,43,17,6,27,5,36,18,26,16,42,29,35,45,32,19,46,20,31,38,47,4,41,23,9,44,34,3,25,1,28,33,40,15,21,2,22,13,24,12,10,11,14,39,8};
+    for(uint64_t i=0;i<n_alleles;i++){
+        ind[0].set_allele(i, &values[i]);
+    }
+    printf("GLOBAL!!\n");
+    ind[0].compute_fitness((void *) &tsp);
+    printf("GLOBAL!!\n");
+    ind[0].print_chromosome();
+    */
     // For example 1 Whitley et al
     /*
     uint64_t values[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
@@ -182,13 +201,14 @@ int main(int argc, char **av) {
     // Run 2-opt 
     std::cout << "Running 2-opt: \n\t";
     for(uint64_t i=0;i<random_sols;i++){
-        ind[i].verify_chromosome("Steady state");
-        run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
-        ind[i].verify_chromosome("Steady state after 2-opt");
+        //run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
+        pthread_create(&threads[i], NULL, run_pthreads_two_opt, (void *) (&args[i]));
         std::cout << i << std::endl;
-        fflush(stdout);
     }
-    std::cout << std::endl;
+
+    for(uint64_t i=0;i<random_sols;i++){
+        pthread_join(threads[i], NULL);
+    }
 
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -233,7 +253,7 @@ int main(int argc, char **av) {
             }while(keep_partitioning);
             //node_id = get_highest_node_unpartitioned(n_alleles, e_table);
             //find_connected_components(node_id, 1, e_table, &FIFO_queue);
-            print_edge_tables(n_alleles, e_table);
+            //print_edge_tables(n_alleles, e_table);
             uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
             std::cout << "Number of partitions: " << n_parts << std::endl;
             if(n_parts == 2){
@@ -251,10 +271,10 @@ int main(int argc, char **av) {
                     offspring_2->compute_fitness((void *) &tsp);
                     offspring_2->verify_chromosome("(2) after PX");
 
-                    printf("$$$$$$$$$$$$$\n");
+                    std::cout << "$$$$$$$$$$$$$\n";
                     offspring_1->print_chromosome();
                     offspring_2->print_chromosome();
-                    printf("$$$$$$$$$$$$$\n");
+                    std::cout << "$$$$$$$$$$$$$\n";
 
                     std::cout << "#\t" << *ind[i].get_fitness() << "\t";
                     std::cout << *ind[j].get_fitness() << "\t";
@@ -265,6 +285,8 @@ int main(int argc, char **av) {
                     //locally_optimals[j].print_chromosome();
                     //std::cout << "\tgenerates" << std::endl;
                     //offspring_1->print_chromosome();
+
+                    /*
                     after_px_2opt->set_fitness(LDBL_MAX);
                     run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
                     //offspring_1->verify_chromosome("(1) after PX and 2-opt");
@@ -279,7 +301,7 @@ int main(int argc, char **av) {
                     //offspring_1->verify_chromosome("(2) after PX and 2-opt");
                     std::cout << *offspring_2->get_fitness() << std::endl;
                     //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
-
+                    */
                 }
             }
             

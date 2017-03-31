@@ -1,5 +1,5 @@
 #pragma once
-
+#define __STDC_FORMAT_MACROS
 template <class T>
 bool is_in_neighborhood8(Position * p1, Position * p2){
     if(labs(p1->x - p2->x) > 1) return false;

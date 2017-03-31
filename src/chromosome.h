@@ -10,7 +10,7 @@
 #include <random>
 #include "common_functions.h"
 #include "defs.h"
-
+#define __STDC_FORMAT_MACROS
 
 template <class T> class Chromosome;
 template <class T> class Chromo_rucksack;

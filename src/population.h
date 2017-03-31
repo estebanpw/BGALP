@@ -8,7 +8,7 @@
 #include "common_functions.h"
 #include "defs.h"
 #include "chromosome.h"
-
+#define __STDC_FORMAT_MACROS
 
 template <class T> class Population;
 

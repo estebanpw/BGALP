@@ -6,7 +6,7 @@
 #include <vector>
 #include <string.h>
 #include <ctype.h>
-
+#define __STDC_FORMAT_MACROS
 class memory_pool{
 
 private:

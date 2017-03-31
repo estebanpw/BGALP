@@ -1,4 +1,5 @@
 #include "chromosome.h"
+#define __STDC_FORMAT_MACROS
 
 
 // Basic chromosome methods
@@ -115,8 +116,10 @@ void Chromo_TSP<T>::compute_fitness(void * solution_info){
     Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) solution_info;
     long double path_sum = 0;
     for(uint64_t i=1; i<this->length; i++){
+        //std::cout << "Computing from " << this->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
         path_sum +=  tsp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
     }
+    //std::cout << "Computing from " << this->chromosome[0] << " to " << this->chromosome[this->length-1] << " adds " << tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]] << std::endl;
     path_sum += tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]]; //Return to initial node
     this->fitness = path_sum;    
 }

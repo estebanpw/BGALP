@@ -1,5 +1,6 @@
 #include "readstream.h"
-
+#include <inttypes.h>
+#define __STDC_FORMAT_MACROS
 Readstream::Readstream(const char * file, void (*reading_function)(FILE * input, void * type_structure), void * type_structure){
     this->input = fopen64(file, "rt");
     if(this->input == NULL) throw "Could not open input file";
@@ -27,10 +28,10 @@ void reading_function_TSP(FILE * input, void * type_structure){
     while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
 
         //printf("Look pussy u read: %s\n", buffer);
-        if(3 == sscanf(buffer, "%" PRIu64" %Le %Le", &id, &x, &y)){
+        if(3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
             total++;
             #ifdef VERBOSE
-            fprintf(stdout, "%" PRIu64", %.3Le %.3Le\n", id, x, y);
+            fprintf(stdout, "%lu, %.3Le %.3Le\n", id, x, y);
             #endif
         }
     }
@@ -54,17 +55,40 @@ void reading_function_TSP(FILE * input, void * type_structure){
     // Add nodes
     while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
 
-        if(3 == sscanf(buffer, "%" PRIu64" %Le %Le", &id, &x, &y)){
+        if(3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
             aux[id-1] = x;
             aux2[id-1] = y;
         }
     }
 
+    int64_t xd, yd;
+    long double rij;
+    long double tij;
+
     // Calculate distances
     for(uint64_t i=0;i<total;i++){
         for(uint64_t j=0;j<total;j++){
+
+            // ATTENTION TODO
+            // Currently using pseudo euc distance 
+            // TODO parameterize this so that you dont have to re-compile
+
+            // EUC-2D
             tsp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
+
+            // ATT 
+            /*
+            xd = (int64_t)aux[i] - (int64_t)aux[j];
+            yd = (int64_t)aux2[i] - (int64_t)aux2[j];
+            rij = sqrtl( (xd*xd + yd*yd) / 10.0);
+            tij = (long double) (round(rij));
+            if(tij < rij) tsp_mat->dist[i][j] = tij+1; else tsp_mat->dist[i][j] = tij;
+            */
+            //std::cout << "Between (" << aux[i] << ", " << aux[j]  << ") and (" << aux2[i] << ", " << aux2[j]  << ") yields " << tsp_mat->dist[i][j] << std::endl;
+            //std::cout << tsp_mat->dist[i][j] << " ";
+            //getchar();
         }
+        //std::cout << std::endl;
     }
 
     std::free(aux);

@@ -1,5 +1,5 @@
 #include "local_search_functions.h"
-
+#define __STDC_FORMAT_MACROS
 
 
 void _2optSwap(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom, uint64_t i, uint64_t k){
@@ -27,9 +27,10 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
     
 
     
-
+    //uint64_t improve = 0;
     long double best_distance = LDBL_MAX;
     while(*route->get_fitness() < best_distance){
+    //while(improve < 20){
         
         start_again:
 
@@ -48,13 +49,21 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
                     route->print_chromosome();
                     getchar();
                     */
-                    
+                    //improve = 0;
                     goto start_again;
                 }
             }
         }
+        //improve++;
     }
 
     //printf("last: %Le %p\n", *route->get_fitness(), route);
     //printf("last: %Le %p\n", *two_opt_chrom->get_fitness(), two_opt_chrom);
 }
+
+void * run_pthreads_two_opt(void * a){
+    two_opt_args * args = (two_opt_args *) a;
+    run_2opt(args->a, args->b, args->solution);
+    return NULL;
+}
+

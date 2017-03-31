@@ -5,7 +5,7 @@
 #include "chromosome.h"
 #include "memory_pool.h"
 #include "defs.h"
-
+#define __STDC_FORMAT_MACROS
 
 
 

@@ -1,5 +1,5 @@
 #include "manager.h"
-
+#define __STDC_FORMAT_MACROS
 
 template <class T>
 Manager<T>::Manager(uint64_t n_populations, uint64_t mix_every, void (*cf)(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m), void (*mut)(Chromosome<T> * a, Population<T> * pop, Manager<T> * m, long double p), void * solution_info, bool maximize){
@@ -95,7 +95,7 @@ void Manager<T>::run(uint64_t n_itera){
     for(i=1;i<n_itera;i++){
 
         if(this->n_populations > 1 && i % this->mix_every == 0){
-            printf("mix is %" PRIu64"\n", this->mix_every);
+            //printf("mix is %" PRIu64"\n", this->mix_every);
             // Mix two populations randomly
             uint64_t pop1 = (uint64_t) ((long double)this->n_populations)*this->u_d(this->uniform_generator);
             uint64_t pop2 = pop1;
@@ -111,7 +111,7 @@ void Manager<T>::run(uint64_t n_itera){
             this->population[pop1]->set_individual_pointer_to(pop1, this->population[pop2]->get_individual_at(ptr2));
             this->population[pop2]->set_individual_pointer_to(pop2, an_auxiliary_pointer);
 
-            fprintf(stdout, "\tMix took place between pool %" PRIu64" and %" PRIu64"\n", pop1, pop2);
+            std::cout << "\tMix took place between pool " << pop1 << " and " << pop2 << "\n";
 
         }
 
@@ -126,8 +126,8 @@ void Manager<T>::run(uint64_t n_itera){
 
             #ifdef VERBOSE
             // Some info
-            fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
-            fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
+            //fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
+            //fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
             #endif
 
             // Crossover function here
@@ -139,9 +139,9 @@ void Manager<T>::run(uint64_t n_itera){
             replacement->compute_fitness(this->solution_info);
             
             #ifdef VERBOSE
-            printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
-            fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
-            getchar();
+            //printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
+            //fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
+            //getchar();
             #endif
 
             // The worst individual is always replaced
@@ -165,7 +165,8 @@ void Manager<T>::run(uint64_t n_itera){
             
             if(i % print_time == 0){
                 //  this->population[j]->print_all_fitness();
-                fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
+                //fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
+                std::cout << "I(" << i<< ") :: " <<  *this->population[j]->get_best_individual()->get_fitness() <<" (%" <<(uint64_t)*this->population[j]->get_best_individual()->get_fitness() <<") @" << this->population[j]->get_best()<<"\n"; 
                 //getchar();
             } 
             

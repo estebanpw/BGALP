@@ -8,7 +8,7 @@
 
 #define TEXT "rt"
 #define BINARY "rb"
-
+#define __STDC_FORMAT_MACROS
 class Readstream{
     private:
     FILE * input = NULL;

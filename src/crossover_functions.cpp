@@ -1,5 +1,5 @@
 #include "crossover_functions.h"
-
+#define __STDC_FORMAT_MACROS
 template <class T>
 void single_point_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m){
     uint64_t midpoint1 = a->get_length()*m->u_d(m->uniform_generator);

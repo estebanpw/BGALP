@@ -13,7 +13,7 @@
 
 #define MAXIMIZE true 
 #define MINIMIZE false
-
+#define __STDC_FORMAT_MACROS
 template <class T> class Manager;
 
 template <class T>

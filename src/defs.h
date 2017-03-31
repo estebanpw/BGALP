@@ -9,7 +9,7 @@
 
 #define UNCOMMON 0
 #define COMMON 1
-
+#define __STDC_FORMAT_MACROS
 enum INITIALIZER { RANDOM, CLEAR };
 
 // Double-evaluation free 
@@ -91,3 +91,4 @@ struct Part_list{
     struct List<T> * LIST;
     struct List<T> ** const_access;
 };
+

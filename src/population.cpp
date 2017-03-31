@@ -1,5 +1,5 @@
 #include "population.h"
-
+#define __STDC_FORMAT_MACROS
 
 template <class T>
 Population<T>::Population(uint64_t n_individuals, Chromosome<T> * individuals){
@@ -63,7 +63,8 @@ bool Population<T>::is_in_neighborhood(uint64_t i1, uint64_t i2){
 template <class T>
 void Population<T>::print_all_fitness(){
     for(uint64_t i=0; i<this->n_individuals; i++){
-        fprintf(stdout, "@[%" PRIu64"]%Le\n", i, *this->get_individual_at(i)->get_fitness());
+        //fprintf(stdout, "@[%" PRIu64"]%Le\n", i, *this->get_individual_at(i)->get_fitness());
+        std::cout << i << " = " << *this->get_individual_at(i)->get_fitness() << std::endl;
     }
 }
 
