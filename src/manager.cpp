@@ -90,7 +90,8 @@ void Manager<T>::run(uint64_t n_itera){
 
     uint64_t replace_pos, k, second_worst;
     uint64_t print_time = (n_itera/20 != 0) ? (n_itera/20) : (1);
-    
+
+
     // Run generations
     for(i=1;i<n_itera;i++){
 
@@ -104,14 +105,18 @@ void Manager<T>::run(uint64_t n_itera){
             }while(pop1 == pop2);
 
             // Swap them pointers
-            uint64_t ptr1 = (uint64_t) this->population[pop1]->get_size()*this->u_d(this->uniform_generator);
-            uint64_t ptr2 = (uint64_t) this->population[pop2]->get_size()*this->u_d(this->uniform_generator);
+            uint64_t ptr1 = (uint64_t) (this->population[pop1]->get_size()-1)*this->u_d(this->uniform_generator);
+            uint64_t ptr2 = (uint64_t) (this->population[pop2]->get_size()-1)*this->u_d(this->uniform_generator);
+            
+            Chromosome<T> * an_auxiliary_pointer_1 = this->population[pop1]->get_individual_at(ptr1);
+            Chromosome<T> * an_auxiliary_pointer_2 = this->population[pop2]->get_individual_at(ptr2);
 
-            Chromosome<T> * an_auxiliary_pointer = this->population[pop1]->get_individual_at(ptr1);
-            this->population[pop1]->set_individual_pointer_to(pop1, this->population[pop2]->get_individual_at(ptr2));
-            this->population[pop2]->set_individual_pointer_to(pop2, an_auxiliary_pointer);
-
-            std::cout << "\tMix took place between pool " << pop1 << " and " << pop2 << "\n";
+            
+            this->population[pop1]->set_individual_pointer_to(ptr1, &(*an_auxiliary_pointer_2));
+            this->population[pop2]->set_individual_pointer_to(ptr2, &(*an_auxiliary_pointer_1));
+            
+            
+            //std::cout << "\tMix took place between pool " << pop1 << " and " << pop2 << "\n";
 
         }
 
@@ -171,8 +176,7 @@ void Manager<T>::run(uint64_t n_itera){
                 //fprintf(stdout, "I(%" PRIu64") :: %.3Le (%" PRIu64") @%" PRIu64"\n", i, *this->population[j]->get_best_individual()->get_fitness(), (uint64_t)*this->population[j]->get_best_individual()->get_fitness() , this->population[j]->get_best());
                 std::cout << "I(" << i<< ") :: " <<  *this->population[j]->get_best_individual()->get_fitness() <<" @" << this->population[j]->get_best()<<"\n"; 
                 //getchar();
-            } 
-            
+            }     
         }
     }
 }

@@ -92,7 +92,7 @@ int main(int argc, char **av) {
     manager->run(n_itera);
 
     std::cout << "Best individual fitness:" << *manager->get_best_individual()->get_fitness() << std::endl;
-    manager->get_best_individual()->print_chromosome();
+    //manager->get_best_individual()->print_chromosome();
     
 
 

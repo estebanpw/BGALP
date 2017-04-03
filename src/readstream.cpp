@@ -136,9 +136,9 @@ void reading_function_LB_reads(FILE * input, void * type_structure){
                         curr_len++;
                     }
 
-                    if(n_sequences > INIT_SEQS*reallocs){
-                        reallocs++;
-                        LB_mat->lengths = (uint64_t *) std::realloc(LB_mat->lengths, reallocs*INIT_SEQS);
+                    if(n_sequences == INIT_SEQS*reallocs){
+                        reallocs = reallocs + 1;
+                        LB_mat->lengths = (uint64_t *) std::realloc(LB_mat->lengths, reallocs*INIT_SEQS*sizeof(uint64_t));
                         if(LB_mat->lengths == NULL) throw "Could not reallocate sequence lengths";
                     }
                     LB_mat->lengths[n_sequences-1] = curr_len;
