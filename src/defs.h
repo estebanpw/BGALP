@@ -94,9 +94,7 @@ struct List{
 };
 
 template <typename T>
-struct Part_list{
-    struct List<T> * last_ptr;
-    struct List<T> * LIST;
-    struct List<T> ** const_access;
+struct PXTable{
+    uint64_t n_surrogate_edges;
+    List<Surrogate_Edge_T<T>> * su_gates; 
 };
-

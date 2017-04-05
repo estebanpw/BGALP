@@ -152,50 +152,6 @@ int main(int argc, char **av) {
     }
     */
     
-    //Chromo_TSP<uint64_t> * aux1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    //Chromo_TSP<uint64_t> * aux2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    /*
-    uint64_t values[] = {0,7,37,30,43,17,6,27,5,36,18,26,16,42,29,35,45,32,19,46,20,31,38,47,4,41,23,9,44,34,3,25,1,28,33,40,15,21,2,22,13,24,12,10,11,14,39,8};
-    for(uint64_t i=0;i<n_alleles;i++){
-        ind[0].set_allele(i, &values[i]);
-    }
-    printf("GLOBAL!!\n");
-    ind[0].compute_fitness((void *) &tsp);
-    printf("GLOBAL!!\n");
-    ind[0].print_chromosome();
-    */
-    // For example 1 Whitley et al
-    /*
-    uint64_t values[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
-    aux1->set_allele(0, &values[0]);
-    aux1->set_allele(1, &values[6]);
-    aux1->set_allele(2, &values[8]);
-    aux1->set_allele(3, &values[10]);
-    aux1->set_allele(4, &values[11]);
-    aux1->set_allele(5, &values[9]);
-    aux1->set_allele(6, &values[7]);
-    aux1->set_allele(7, &values[3]);
-    aux1->set_allele(8, &values[5]);
-    aux1->set_allele(9, &values[2]);
-    aux1->set_allele(10, &values[1]);
-    aux1->set_allele(11, &values[4]);
-
-    aux2->set_allele(0, &values[0]);
-    aux2->set_allele(1, &values[6]);
-    aux2->set_allele(2, &values[10]);
-    aux2->set_allele(3, &values[8]);
-    aux2->set_allele(4, &values[9]);
-    aux2->set_allele(5, &values[11]);
-    aux2->set_allele(6, &values[7]);
-    aux2->set_allele(7, &values[3]);
-    aux2->set_allele(8, &values[2]);
-    aux2->set_allele(9, &values[5]);
-    aux2->set_allele(10, &values[4]);
-    aux2->set_allele(11, &values[1]);
-
-    aux1->print_chromosome();
-    aux2->print_chromosome();
-    */
 
     
     // Run 2-opt 
@@ -215,9 +171,11 @@ int main(int argc, char **av) {
         ind[i].print_chromosome();
     }
     
-    // Allocate edge tables, FIFO queue and memory pool
+    // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
+    PXTable<uint64_t> * part_table = (PXTable<uint64_t> *) std::malloc(n_alleles * sizeof(PXTable<uint64_t>));
+    if(part_table == NULL) throw "Could not allocate partition table";
     memory_pool * mp = new memory_pool(POOL_SIZE);
     Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
@@ -251,11 +209,22 @@ int main(int argc, char **av) {
                     current_label++;
                 }
             }while(keep_partitioning);
-            //node_id = get_highest_node_unpartitioned(n_alleles, e_table);
-            //find_connected_components(node_id, 1, e_table, &FIFO_queue);
-            //print_edge_tables(n_alleles, e_table);
+            
+            // Get number of partitions 
             uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
             std::cout << "Number of partitions: " << n_parts << std::endl;
+
+            // Reset partition table 
+            memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
+
+            // Generate surrogate edges for partitions 
+            generate_partitions(part_table, e_table, n_alleles, mp);
+            for(uint64_t w=0;w<n_parts;w++){
+
+                std::cout << w << ": " << part_table[w].n_surrogate_edges << std::endl;
+                getchar();
+            }
+            /*
             if(n_parts == 2){
                 // Find if partition crossover is feasible
                 Quartet<Edge_T<uint64_t>> px;
@@ -286,7 +255,7 @@ int main(int argc, char **av) {
                     //std::cout << "\tgenerates" << std::endl;
                     //offspring_1->print_chromosome();
 
-                    /*
+                    
                     after_px_2opt->set_fitness(LDBL_MAX);
                     run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
                     //offspring_1->verify_chromosome("(1) after PX and 2-opt");
@@ -301,54 +270,15 @@ int main(int argc, char **av) {
                     //offspring_1->verify_chromosome("(2) after PX and 2-opt");
                     std::cout << *offspring_2->get_fitness() << std::endl;
                     //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
-                    */
+                    
                 }
             }
+            */
             
         }
     }
     
-    /*
-    std::cout << "Building edges table: " << std::endl;
-    Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
-    if(e_table == NULL) throw "Could not allocate edges table";
-    memory_pool * mp = new memory_pool(POOL_SIZE);
-
-    // Fill edge table for two random solutions
-    fill_edge_table(aux1, e_table, mp);
-    fill_edge_table(aux2, e_table, mp);
-    // Calculate degree
-    generate_degree(n_alleles, e_table);
-    //print_edge_tables(n_alleles, e_table);
-
-    // Locate partitions
-    std::queue<uint64_t> FIFO_queue;
-    uint64_t node_id = get_highest_node_unpartitioned(n_alleles, e_table);
-    find_connected_components(node_id, 0, e_table, &FIFO_queue);
-    //std::cout << "First partition " << std::endl;
-    //print_edge_tables(n_alleles, e_table);
-
-    node_id = get_highest_node_unpartitioned(n_alleles, e_table);
-    find_connected_components(node_id, 1, e_table, &FIFO_queue);
-    //std::cout << "Second partition " << std::endl;
-    //print_edge_tables(n_alleles, e_table);
-
-    // Find if partition crossover is feasible
-    Quartet<Edge_T<uint64_t>> px;
-    find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
-
-    Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-
-    if(px._p1._e1 != NULL) apply_PX_chromosomes(n_alleles, e_table, &px, aux1, aux2, offspring_1, offspring_2);
-
-    */
-    // Deallocating
-    /*
-    std::cout << "Results from PX: " << std::endl;
-    offspring_1->print_chromosome();
-    offspring_2->print_chromosome();
-    */ 
+    
     
     for(uint64_t i=0;i<tsp.n;i++){
         std::free(tsp.dist[i]);
@@ -364,6 +294,7 @@ int main(int argc, char **av) {
     std::free(ind);
     std::free(population);
     std::free(e_table);
+    std::free(part_table);
 
     return 0;
 }
