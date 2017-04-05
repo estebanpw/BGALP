@@ -1,5 +1,6 @@
 #include "crossover_functions.h"
 #define __STDC_FORMAT_MACROS
+
 template <class T>
 void single_point_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m){
     uint64_t midpoint1 = a->get_length()*m->u_d(m->uniform_generator);
@@ -186,6 +187,75 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             }
             e_table[i]->degree = degree;
             e_table[i]->n_commons = n_commons;
+        }
+    }
+}
+
+template <class T>
+void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp){
+
+    uint64_t i;
+    Edge_T<T> * b, * c, * d, * e, * e_ptr, * e_aux_ptr;
+    
+    for(i=0;i<n_nodes;i++){
+        if(e_table[i]->degree == 4){
+            // Found a vertex with degree 4, split it and add a ghost vertex
+
+            // Make the connections i.e. if we have: 
+            // a | b c d e 
+            // then
+            // a | b c 
+            // and 
+            // a' | d e 
+
+
+            // Lower degree 
+            e_table[i]->degree = 2;
+
+            // First, insert the new node at position n_nodes+i 
+            e_table[n_nodes+i] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+            e_table[n_nodes+i]->node = e_table[i]->node;
+            e_table[n_nodes+i]->degree = 2;
+            e_table[n_nodes+i]->next = NULL;
+            
+            // Get references 
+            b = e_table[n_nodes+i]->next;
+            c = e_table[n_nodes+i]->next->next;
+            d = e_table[n_nodes+i]->next->next->next;
+            e = e_table[n_nodes+i]->next->next->next->next;
+
+            // Disconnect d and e 
+            c->next = NULL;
+
+            // Connect d and e to a' 
+            e_table[n_nodes+i]->next = d;
+
+            // Delete referece to a from d, e 
+            // Case for d 
+            e_ptr = e_table[d->node]->next;
+            while(e_ptr->node != e_table[n_nodes+i]->node){
+                e_aux_ptr = e_ptr; // Holds the previous one
+                e_ptr = e_ptr->next;
+            }
+            e_aux_ptr->next = e_ptr->next; // Actual disconnection
+            e_table[d->node]->degree--;
+            // Case for e 
+            e_ptr = e_table[e->node]->next;
+            while(e_ptr->node != e_table[n_nodes+i]->node){
+                e_aux_ptr = e_ptr; // Holds the previous one
+                e_ptr = e_ptr->next;
+            }
+            e_aux_ptr->next = e_ptr->next; // Actual disconnection
+            e_table[e->node]->degree--;
+
+
+            // Add reference to a' from d, e 
+            
+            
+            
+            // Finally, add connections between a and a' 
+            
+
         }
     }
 }

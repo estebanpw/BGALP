@@ -172,7 +172,7 @@ int main(int argc, char **av) {
     }
     
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
-    Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(n_alleles, sizeof(Edge_T<uint64_t> *));
+    Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
     PXTable<uint64_t> * part_table = (PXTable<uint64_t> *) std::malloc(n_alleles * sizeof(PXTable<uint64_t>));
     if(part_table == NULL) throw "Could not allocate partition table";
