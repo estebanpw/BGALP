@@ -219,9 +219,24 @@ int main(int argc, char **av) {
 
             // Generate surrogate edges for partitions 
             generate_partitions(part_table, e_table, n_alleles, mp);
+            Quartet<Edge_T<uint64_t>> current_px;
+
+
+            
+            
             for(uint64_t w=0;w<n_parts;w++){
 
-                std::cout << w << ": " << part_table[w].n_surrogate_edges << std::endl;
+                std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
+                List<Surrogate_Edge_T<uint64_t>> * ls_ptr = part_table[w].su_gates;
+                while(ls_ptr != NULL){
+                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << ", ";
+                    ls_ptr = ls_ptr->next;
+                }
+                std::cout << std::endl;
+                
+                if(part_table[w].n_surrogate_edges == 2){
+                    //current_px._p1._e1 = part_table[w].su_gates->v
+                }
                 getchar();
             }
             /*

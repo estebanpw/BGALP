@@ -421,7 +421,7 @@ template <class T>
 void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n_nodes, memory_pool * mp){
     uint64_t i;
     Pair<Edge_T<T>> pair;
-    List<Surrogate_Edge_T<T>> * list_su = NULL;
+    List<Surrogate_Edge_T<T>> * list_su_p1 = NULL, * list_su_p2 = NULL;
 
     for(i=0; i<n_nodes; i++){
 
@@ -432,30 +432,41 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
             if(pair._e1 == NULL || pair._e2 == NULL) continue;
             if(pair._e1->partition == pair._e2->partition) continue;
             
-            std::cout << "SG " << i << " connects (" << pair._e1->partition << ", " << pair._e2->partition << ") " << std::endl;
+            //std::cout << "SG " << i << " connects (" << pair._e1->partition << ", " << pair._e2->partition << ") " << std::endl;
             //std::cout << " \t " << pair._e1->node << "(" << pair._e1->partition << " ), " << pair._e2->node << "(" << pair._e2->partition << ")" << std::endl;
 
             // Get memory 
-            list_su = (List<Surrogate_Edge_T<T>> *) mp->request_bytes(sizeof(List<Surrogate_Edge_T<T>>));
+            list_su_p1 = (List<Surrogate_Edge_T<T>> *) mp->request_bytes(sizeof(List<Surrogate_Edge_T<T>>));
+            list_su_p1->v.left = pair._e1;
+            list_su_p1->v.right = pair._e2;
+            list_su_p2 = (List<Surrogate_Edge_T<T>> *) mp->request_bytes(sizeof(List<Surrogate_Edge_T<T>>));
+            list_su_p2->v.left = pair._e1;
+            list_su_p2->v.right = pair._e2;
 
-            // Link previous for p1 
-            list_su->prev = px_table[pair._e1->partition].su_gates;
+            
             // Link next for p1 
             if(px_table[pair._e1->partition].su_gates != NULL){
-                list_su->next = px_table[pair._e1->partition].su_gates->next;
-                px_table[pair._e1->partition].su_gates->next->prev = list_su;
+                list_su_p1->next = px_table[pair._e1->partition].su_gates;
+                px_table[pair._e1->partition].su_gates->prev = list_su_p1;
+                px_table[pair._e1->partition].su_gates = list_su_p1;
+                list_su_p1->prev = NULL;
             }else{
-                list_su->next = NULL;
+                px_table[pair._e1->partition].su_gates = list_su_p1;
+                list_su_p1->prev = NULL;
+                list_su_p1->next = NULL;
             }
 
-            // Link previous for p2 
-            list_su->prev = px_table[pair._e2->partition].su_gates;
+            
             // Link next for p2 
             if(px_table[pair._e2->partition].su_gates != NULL){
-                list_su->next = px_table[pair._e2->partition].su_gates->next;
-                px_table[pair._e2->partition].su_gates->next->prev = list_su;
+                list_su_p2->next = px_table[pair._e2->partition].su_gates;
+                px_table[pair._e2->partition].su_gates->prev = list_su_p2;
+                px_table[pair._e2->partition].su_gates = list_su_p2;
+                list_su_p2->prev = NULL;
             }else{
-                list_su->next = NULL;
+                px_table[pair._e2->partition].su_gates = list_su_p2;
+                list_su_p2->prev = NULL;
+                list_su_p2->next = NULL;
             }
 
             px_table[pair._e1->partition].n_surrogate_edges++;

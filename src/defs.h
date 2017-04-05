@@ -88,7 +88,7 @@ struct Surrogate_Edge_T{
 
 template <typename T>
 struct List{
-    struct Edge_T<T> * v;
+    T v;
     struct List * next;
     struct List * prev;
 };
