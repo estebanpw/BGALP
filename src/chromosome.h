@@ -32,6 +32,7 @@ public:
     long double * get_fitness(){ return &this->fitness; }
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness(void * solution_info) = 0;
+    void hard_copy_no_pointers(Chromosome<T> * source);
     void random_bit_fill();
     void random_bit_fill(uint64_t max_l);
     void set_allele(uint64_t index, T * value); 

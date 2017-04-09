@@ -165,11 +165,12 @@ int main(int argc, char **av) {
     for(uint64_t i=0;i<random_sols;i++){
         pthread_join(threads[i], NULL);
     }
-
+    /*
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
         ind[i].print_chromosome();
     }
+    */
     
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
@@ -181,6 +182,11 @@ int main(int argc, char **av) {
     Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     Chromo_TSP<uint64_t> * after_px_2opt = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     std::queue<uint64_t> FIFO_queue;
+
+    // To get best offspring 
+    uint64_t score_subtour_A, score_subtour_B;
+    uint64_t max_score_A, max_score_B;
+    int64_t the_other_partition;
 
     // For all possible combinations 
     
@@ -214,6 +220,8 @@ int main(int argc, char **av) {
             uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
             std::cout << "Number of partitions: " << n_parts << std::endl;
 
+            print_edge_tables(n_alleles, e_table);
+
             // Reset partition table 
             memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
 
@@ -223,21 +231,76 @@ int main(int argc, char **av) {
 
 
             
-            
+            //getchar();
             for(uint64_t w=0;w<n_parts;w++){
 
                 std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
                 List<Surrogate_Edge_T<uint64_t>> * ls_ptr = part_table[w].su_gates;
                 while(ls_ptr != NULL){
-                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << ", ";
+                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << "(" << ls_ptr->v.left->partition << ", " << ls_ptr->v.right->partition << ") , ";
                     ls_ptr = ls_ptr->next;
                 }
                 std::cout << std::endl;
                 
                 if(part_table[w].n_surrogate_edges == 2){
                     //current_px._p1._e1 = part_table[w].su_gates->v
+                
+                    current_px._p1._e1 = part_table[w].su_gates->v.left;
+                    current_px._p1._e2 = part_table[w].su_gates->v.right;
+                    current_px._p2._e1 = part_table[w].su_gates->next->v.left;
+                    current_px._p2._e2 = part_table[w].su_gates->next->v.right;
+
+                    if(!is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e2->node)
+                    && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e2->node) ){
+
+                        std::cout << "================================================================" << std::endl;
+                        std::cout << "Combining " << std::endl;
+                        ind[i].print_chromosome();
+                        std::cout << " with: " << std::endl;
+                        ind[j].print_chromosome();
+                        
+                        if(e_table[part_table[w].su_gates->v.left->node]->partition != (int64_t) w) the_other_partition = e_table[part_table[w].su_gates->v.left->node]->partition; else the_other_partition = e_table[part_table[w].su_gates->v.right->node]->partition;
+
+                        score_subtour_A = evaluate_partition_subtours(&part_table[w].su_gates->v, &part_table[w].su_gates->next->v, &ind[i], (void *) &tsp, (int64_t) w, the_other_partition, e_table);
+                        score_subtour_B = evaluate_partition_subtours(&part_table[w].su_gates->v, &part_table[w].su_gates->next->v, &ind[j], (void *) &tsp, (int64_t) w, the_other_partition, e_table);
+                        std::cout << "Score A: " << score_subtour_A << std::endl;
+                        std::cout << "Score B: " << score_subtour_B << std::endl;
+
+                        max_score_A = (*ind[i].get_fitness() - score_subtour_A) + score_subtour_B;
+                        max_score_B = (*ind[j].get_fitness() - score_subtour_B) + score_subtour_A;
+
+                        
+
+
+                        if(max_score_A <= *ind[i].get_fitness() && max_score_A <= *ind[j].get_fitness() && max_score_A <= max_score_B){
+                            // A with B is best
+                            std::cout << "Best is A with B " << std::endl;
+                            apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[i], &ind[j], offspring_1);
+                        }
+                        else if(max_score_B <= *ind[i].get_fitness() && max_score_B <= *ind[j].get_fitness() && max_score_B <= max_score_A){
+                            // B with A is best 
+                            std::cout << "Best is B with A " << std::endl;
+                            apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[j], &ind[i], offspring_1);
+                        }
+                        else if(*ind[i].get_fitness() <= *ind[j].get_fitness()){
+                            // A as is, is best
+                            std::cout << "Best is A " << std::endl;
+                            offspring_1->hard_copy_no_pointers(&ind[i]);
+                        }else{
+                            // B as is, is best
+                            std::cout << "Best is B " << std::endl;
+                            offspring_1->hard_copy_no_pointers(&ind[j]);
+                        }
+                        offspring_1->compute_fitness((void *) &tsp);
+                        std::cout << "#\t" << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << *offspring_1->get_fitness() << std::endl;
+
+                        
+                        getchar();
+                    }
+
+                    
                 }
-                getchar();
+                
             }
             /*
             if(n_parts == 2){

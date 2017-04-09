@@ -46,6 +46,16 @@ void Chromosome<T>::write_chromosome(){
     std::cout << std::endl;
 }
 
+template <class T>
+void Chromosome<T>::hard_copy_no_pointers(Chromosome<T> * source){
+    for(uint64_t i=0;i<this->get_length();i++){
+        this->chromosome[i] = source->chromosome[i];
+        //destination->set_allele(source->get_allele());
+    }
+    
+}
+
+
 
 // Rucksack chromosome (not done)
 template <class T>

@@ -1,3 +1,4 @@
+#pragma once
 #include <stdio.h>
 #include <cstdlib>
 #include <sys/time.h>
@@ -7,8 +8,8 @@
 #include <random>
 #include <iostream>
 #include <math.h>
-#include "defs.h"
 #include "chromosome.h"
+#include "defs.h"
 #include "memory_pool.h"
 #define __STDC_FORMAT_MACROS
 /**
@@ -35,3 +36,4 @@ bool find_in_vector(std::vector<T> * v, T key);
 
 template <class T>
 uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<T> ** e_table);
+

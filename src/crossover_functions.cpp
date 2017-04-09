@@ -485,8 +485,6 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
 }
 
 
-
-
 template <class T>
 void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n_nodes, memory_pool * mp){
     uint64_t i;
@@ -502,7 +500,9 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
             if(pair._e1 == NULL || pair._e2 == NULL) continue;
             if(pair._e1->partition == pair._e2->partition) continue;
             
-            //std::cout << "SG " << i << " connects (" << pair._e1->partition << ", " << pair._e2->partition << ") " << std::endl;
+
+            
+            std::cout << "SG " << i << " connects (" << pair._e1->partition << ", " << pair._e2->partition << ") " << std::endl;
             //std::cout << " \t " << pair._e1->node << "(" << pair._e1->partition << " ), " << pair._e2->node << "(" << pair._e2->partition << ")" << std::endl;
 
             // Get memory 
@@ -546,9 +546,73 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
     }
 }
 
+template <class T>
+T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> * end, Chromosome<T> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<T> ** e_table){
+    T score = 0;
+    uint64_t swath_start_P1 = 0, swath_end_P1 = 0;
+    uint64_t i, aux;
+    uint64_t n_nodes = c->get_length();
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix * ) solution_info;
+
+    for(i=0;i<n_nodes;i++){
+        // Find first swath in P1 
+        if(*c->get_allele(i) == start->left->node) swath_start_P1 = i;
+        if(*c->get_allele(i) == start->right->node) swath_end_P1 = i;
+    }
+
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    uint64_t minus_pos = (swath_start_P1 == 0) ? (n_nodes-1) : (swath_start_P1 - 1);
+    bool go_backwards_P1 = false;
+    std::cout << ":: " << e_table[*c->get_allele((swath_start_P1 + 1) % n_nodes)]->partition << std::endl;
+    std::cout << ":: " << e_table[*c->get_allele(minus_pos)]->partition << std::endl;
+
+    if(e_table[*c->get_allele((swath_start_P1 + 1) % n_nodes)]->partition == partition1){  goto escape_1_O1; }
+    else if(e_table[*c->get_allele(minus_pos)]->partition == partition1){go_backwards_P1 = true; goto escape_1_O1; }
+    // If it gets here, it means that we have to reverse start with end 
+    else{
+        aux = swath_start_P1;
+        swath_start_P1 = swath_end_P1;
+        swath_end_P1 = aux;
+    }
+    // And re-check orders
+    if(e_table[*c->get_allele((swath_start_P1 + 1) % n_nodes)]->partition == partition1){  goto escape_1_O1; }
+    else if(e_table[*c->get_allele(minus_pos)]->partition == partition1){ go_backwards_P1 = true;goto escape_1_O1; }
+    
+    std::cout << ":: " << e_table[*c->get_allele((swath_start_P1 + 1) % n_nodes)]->partition << std::endl;
+    std::cout << ":: " << e_table[*c->get_allele(minus_pos)]->partition << std::endl;
 
 
+    escape_1_O1:
 
+    // At this point we have the swath position starting and ending in both P1 and P2 
+    // and we know if the swaths are to be copied from left to right or right to left 
+
+    // Proceed to copy 
+    i = swath_start_P1;
+
+    std::cout << "Arriving partitions: " << partition1 << " - " << partition2 << std::endl;
+
+    do{
+
+        // Advance
+        if(go_backwards_P1){
+            if(i>0) i--; else i=n_nodes-1;
+        }else{
+            i = (i + 1) % n_nodes;
+        }
+        std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+        // Compute here
+        if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
+        else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+
+    //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
+    }while(e_table[*c->get_allele(i)]->partition != partition2);
+    //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
+    
+    std::cout << std::endl;
+    return score;
+} 
 
 
 
@@ -681,6 +745,76 @@ void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T
     
 }
 
+template <class T>
+void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<Edge_T<T>> * px, Chromosome<T> * P1, Chromosome<T> * P2, Chromosome<T> * offspring_1){
+
+    uint64_t swath_start_P1 = 0, swath_start_P2 = 0, swath_end_P1 = 0, swath_end_P2 = 0;
+    uint64_t i, j;
+    
+
+    // pair1(e1,e2), pair2(e1,e2)
+    // One swath goes from pair1(e2) to pair2(e1)
+    // And the other goe sfrom pair2(e2) to pair1(e1)
+
+    for(i=0;i<n_nodes;i++){
+        // Find first swath in P1 
+        if(*P1->get_allele(i) == px->_p1._e1->node) swath_start_P1 = i;
+        if(*P1->get_allele(i) == px->_p1._e2->node) swath_end_P1 = i;
+        // Find the first swath in P2 
+        if(*P2->get_allele(i) == px->_p1._e1->node) swath_start_P2 = i;
+        if(*P2->get_allele(i) == px->_p1._e2->node) swath_end_P2 = i;
+        
+        // Copy P1 in both offsprings
+        offspring_1->set_allele(i, P1->get_allele(i));
+    }
+
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    bool go_backwards_P2 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P2 = true; goto escape_2_O1; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P2 = true; goto escape_2_O1; }
+        if(*P2->get_allele((swath_start_P2 + i) % n_nodes) == px->_p1._e2->node){ goto escape_2_O1; }
+    }
+
+    escape_2_O1:
+    // Check that between swath_start and swath_end there are no other nodes in between in P2
+    bool go_backwards_P1 = false;
+    for(i=1;i<n_nodes;i++){
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e1->node){ go_backwards_P1 = true; goto escape_1_O1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p2._e2->node){ go_backwards_P1 = true; goto escape_1_O1; }
+        if(*P1->get_allele((swath_start_P1 + i) % n_nodes) == px->_p1._e2->node){ goto escape_1_O1; }
+    }
+
+    escape_1_O1:
+
+    // At this point we have the swath position starting and ending in both P1 and P2 
+    // and we know if the swaths are to be copied from left to right or right to left 
+
+    // Proceed to copy 
+    i = swath_end_P1;
+    j = swath_end_P2;
+
+    do{
+
+        // Advance
+        if(go_backwards_P1){
+            if(i>0) i--; else i=n_nodes-1;
+        }else{
+            i = (i + 1) % n_nodes;
+        }
+        if(go_backwards_P2){
+            if(j>0) j--; else j=n_nodes-1;
+        }else{
+            j = (j + 1) % n_nodes;
+        }
+
+        // Copy swath from P2 in offspring 1
+        offspring_1->set_allele(i, P2->get_allele(j));
+
+    }while(*P2->get_allele(j) != px->_p2._e1->node && *P2->get_allele(j) != px->_p2._e2->node);
+    
+}
+
 
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
@@ -694,5 +828,7 @@ template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
+template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
+template void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
