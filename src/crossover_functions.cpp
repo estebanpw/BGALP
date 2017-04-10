@@ -180,6 +180,7 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             n_commons = 0;
             ptr = e_table[i]->next;
             e_table[i]->already_tried_to_partitionate = false;
+            e_table[i]->already_surrogate = false;
             while(ptr != NULL){
                 degree++;
                 if(ptr->common == COMMON) n_commons++;
@@ -347,7 +348,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
         if(ptr != NULL && ptr->node != last_replaced->node){
             
             // If it has already been used, abort 
-            if(e_table[master_node]->already_tried_to_partitionate){
+            if(e_table[master_node]->already_surrogate){
                 surrogate._e1 = NULL;
                 surrogate._e2 = NULL;
                 return surrogate;
@@ -382,7 +383,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
     if(route_start != NULL && route_end != NULL){
         while(!FIFO_queue.empty()){
 
-            FIFO_queue.front()->already_tried_to_partitionate = true;
+            FIFO_queue.front()->already_surrogate = true;
             FIFO_queue.pop();
         }
     }
@@ -575,6 +576,7 @@ T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> *
         swath_end_P1 = aux;
     }
     // And re-check orders
+    minus_pos = (swath_start_P1 == 0) ? (n_nodes-1) : (swath_start_P1 - 1);
     if(e_table[*c->get_allele((swath_start_P1 + 1) % n_nodes)]->partition == partition1){  goto escape_1_O1; }
     else if(e_table[*c->get_allele(minus_pos)]->partition == partition1){ go_backwards_P1 = true;goto escape_1_O1; }
     
@@ -607,8 +609,9 @@ T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> *
         else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
 
     //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
-    }while(e_table[*c->get_allele(i)]->partition != partition2);
+    //}while(e_table[*c->get_allele(i)]->partition != partition2);
     //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
+    }while(e_table[*c->get_allele(i)]->partition != partition2 && *c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
     
     std::cout << std::endl;
     return score;

@@ -78,6 +78,7 @@ struct Edge_T{
     uint64_t degree;
     uint64_t n_commons;
     bool already_tried_to_partitionate;
+    bool already_surrogate;
 };
 
 template <typename T>

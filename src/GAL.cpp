@@ -229,8 +229,17 @@ int main(int argc, char **av) {
             generate_partitions(part_table, e_table, n_alleles, mp);
             Quartet<Edge_T<uint64_t>> current_px;
 
+            for(uint64_t w=0;w<n_parts;w++){
 
-            
+                std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
+                List<Surrogate_Edge_T<uint64_t>> * ls_ptr = part_table[w].su_gates;
+                while(ls_ptr != NULL){
+                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << "(" << ls_ptr->v.left->partition << ", " << ls_ptr->v.right->partition << ") , ";
+                    ls_ptr = ls_ptr->next;
+                }
+                std::cout << std::endl;
+            }
+            std::cout << " ------------------ " << std::endl;
             //getchar();
             for(uint64_t w=0;w<n_parts;w++){
 
@@ -274,21 +283,21 @@ int main(int argc, char **av) {
 
                         if(max_score_A <= *ind[i].get_fitness() && max_score_A <= *ind[j].get_fitness() && max_score_A <= max_score_B){
                             // A with B is best
-                            std::cout << "Best is A with B " << std::endl;
+                            std::cout << "Best is A with B " << max_score_A << std::endl;
                             apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[i], &ind[j], offspring_1);
                         }
                         else if(max_score_B <= *ind[i].get_fitness() && max_score_B <= *ind[j].get_fitness() && max_score_B <= max_score_A){
                             // B with A is best 
-                            std::cout << "Best is B with A " << std::endl;
+                            std::cout << "Best is B with A " << max_score_B << std::endl;
                             apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[j], &ind[i], offspring_1);
                         }
                         else if(*ind[i].get_fitness() <= *ind[j].get_fitness()){
                             // A as is, is best
-                            std::cout << "Best is A " << std::endl;
+                            std::cout << "Best is A " << *ind[i].get_fitness() << std::endl;
                             offspring_1->hard_copy_no_pointers(&ind[i]);
                         }else{
                             // B as is, is best
-                            std::cout << "Best is B " << std::endl;
+                            std::cout << "Best is B " << *ind[j].get_fitness() << std::endl;
                             offspring_1->hard_copy_no_pointers(&ind[j]);
                         }
                         offspring_1->compute_fitness((void *) &tsp);
