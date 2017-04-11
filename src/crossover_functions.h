@@ -17,10 +17,13 @@ template <class T>
 void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * replacement, Manager<T> * m);
 
 template <class T>
-void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp);
+void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, uint64_t cycle_id);
 
 template <class T>
 void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table);
+
+template <class T>
+void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table);
 
 template <class T>
 bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id);

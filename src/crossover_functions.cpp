@@ -60,7 +60,7 @@ void ordered_crossover(Chromosome<T> * a, Chromosome<T> * b, Chromosome<T> * rep
 }
 
 template <class T>
-void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
+void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, uint64_t cycle_id){
     
     uint64_t i;
     Edge_T<T> * previous;
@@ -94,6 +94,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = next_allele;
                 et_ptr->common = UNCOMMON;
+                et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
                 if(previous != e_table[current_allele] && previous != NULL) previous->next = et_ptr; else e_table[current_allele]->next = et_ptr;
 
@@ -121,6 +122,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = previous_allele;
                 et_ptr->common = UNCOMMON;
+                et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
                 if(previous != e_table[current_allele] && previous != NULL) previous->next = et_ptr; else e_table[current_allele]->next = et_ptr;
 
@@ -145,6 +147,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = *a->get_allele(a->get_length()-1);
         et_ptr->next->common = UNCOMMON;
+        et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;
         //printf("added (1) %" PRIu64"\n", et_ptr->next->node);
     }
@@ -162,6 +165,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp){
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = *a->get_allele(0);
         et_ptr->next->common = UNCOMMON;
+        et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;
         //printf("added (2) %" PRIu64"\n", et_ptr->next->node);
     }
@@ -181,6 +185,8 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             ptr = e_table[i]->next;
             e_table[i]->already_tried_to_partitionate = false;
             e_table[i]->already_surrogate = false;
+            e_table[i]->is_entry = false;
+            e_table[i]->is_exit = false;
             while(ptr != NULL){
                 degree++;
                 if(ptr->common == COMMON) n_commons++;
@@ -190,6 +196,37 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             e_table[i]->n_commons = n_commons;
         }
     }
+}
+
+template <class T>
+void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table){
+    uint64_t i, n_edges_circuit_A, n_edges_circuit_B;
+    bool is_entry = false;
+    Edge_T<T> * ptr = NULL;
+    for(i=0;i<n_nodes;i++){
+        if(e_table[i]->partition != -1){ // Its in a connected component 
+            ptr = e_table[i]->next;
+            n_edges_circuit_A = 0;
+            n_edges_circuit_B = 0;
+            while(ptr != NULL){
+                if(ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT_A){
+                    n_edges_circuit_A++;
+                    if(e_table[ptr->node]->partition != e_table[i]->partition) is_entry = false; else is_entry = true;
+                } 
+                if(ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT_B){
+                    n_edges_circuit_B++;
+                    if(e_table[ptr->node]->partition != e_table[i]->partition) is_entry = false; else is_entry = true;
+                }
+                ptr = ptr->next;
+            }
+            if((n_edges_circuit_A == 1 && n_edges_circuit_B == 0) || (n_edges_circuit_A == 0 && n_edges_circuit_B == 1)){
+                // Its an entry or exit 
+                if(is_entry){ e_table[i]->is_entry = true; e_table[i]->is_exit = false; }
+                if(!is_entry){ e_table[i]->is_entry = false; e_table[i]->is_exit = true; }
+            }
+        }
+    }
+
 }
 
 template <class T>
@@ -823,8 +860,9 @@ void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<E
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
 template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, Chromosome<uint64_t> * replacement, Manager<uint64_t> * m);
 template void ordered_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
-template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_table, memory_pool * mp);
+template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_table, memory_pool * mp, uint64_t cycle_id);
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template void mark_entries_and_exists(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, uint64_t * node_id);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);

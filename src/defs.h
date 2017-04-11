@@ -9,6 +9,8 @@
 
 #define UNCOMMON 0
 #define COMMON 1
+#define CIRCUIT_A 0
+#define CIRCUIT_B 1
 #define __STDC_FORMAT_MACROS
 enum INITIALIZER { RANDOM, CLEAR };
 
@@ -77,8 +79,11 @@ struct Edge_T{
     int64_t partition;
     uint64_t degree;
     uint64_t n_commons;
-    bool already_tried_to_partitionate;
-    bool already_surrogate;
+    bool already_tried_to_partitionate; // To mark if it was used to generate connected components
+    bool already_surrogate;             // To mark if the edge was used in a surrogate 
+    bool is_entry;                      // To mark whether the edge is an entry of the connected component
+    bool is_exit;                       // Same but with exit 
+    uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
 };
 
 template <typename T>
