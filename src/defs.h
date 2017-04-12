@@ -81,8 +81,11 @@ struct Edge_T{
     uint64_t n_commons;
     bool already_tried_to_partitionate; // To mark if it was used to generate connected components
     bool already_surrogate;             // To mark if the edge was used in a surrogate 
-    bool is_entry;                      // To mark whether the edge is an entry of the connected component
-    bool is_exit;                       // Same but with exit 
+    bool is_entry_cycle_A;              // To mark whether the edge is an entry of the connected component
+    bool is_entry_cycle_B;
+    bool is_exit_cycle_A;               // Same but with exit 
+    bool is_exit_cycle_B;
+    bool incoming;                      // Tells if the edge is incoming or outcoming (sequential order in TSP)
     uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
 };
 

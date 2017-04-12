@@ -23,7 +23,10 @@ template <class T>
 void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table);
 
 template <class T>
-void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table);
+void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B);
+
+template <class T>
+Pair<Edge_T<T>> exit_from_entry(Edge_T<T> ** e_table, Edge_T<T> * entry, unsigned char CIRCUIT);
 
 template <class T>
 bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id);

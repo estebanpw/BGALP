@@ -183,6 +183,10 @@ int main(int argc, char **av) {
     Chromo_TSP<uint64_t> * after_px_2opt = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     std::queue<uint64_t> FIFO_queue;
 
+    // Queues for multipartitioning
+    std::queue<Edge_T<uint64_t> *> entries_A, entries_B, exits_A, exits_B;
+    
+
     // To get best offspring 
     uint64_t score_subtour_A, score_subtour_B;
     uint64_t max_score_A, max_score_B;
@@ -227,8 +231,22 @@ int main(int argc, char **av) {
 
             // Generate surrogate edges for partitions 
             generate_partitions(part_table, e_table, n_alleles, mp);
+
+            // Mark entries and exists to tell if a multipartitioning approach is feasible
+            // Empty queues first 
+            while(!entries_A.empty()) entries_A.pop(); while(!entries_B.empty()) entries_B.pop();
+            while(!exits_A.empty()) exits_A.pop(); while(!exits_B.empty()) exits_B.pop();
+
+            mark_entries_and_exists(n_alleles, e_table, &entries_A, &entries_B, &exits_A, &exits_B);
+            
+            std::cout << "Entries A: "; while(!entries_A.empty()){ std::cout << entries_A.front()->node << ", "; entries_A.pop(); }
+            std::cout << "Exits A: "; while(!exits_A.empty()){ std::cout << exits_A.front()->node << ", "; exits_A.pop(); }
+            getchar();
+            
+            // To hold pairs of surrogates
             Quartet<Edge_T<uint64_t>> current_px;
 
+            // Print partitions 
             for(uint64_t w=0;w<n_parts;w++){
 
                 std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
@@ -240,7 +258,8 @@ int main(int argc, char **av) {
                 std::cout << std::endl;
             }
             std::cout << " ------------------ " << std::endl;
-            //getchar();
+            
+
             for(uint64_t w=0;w<n_parts;w++){
 
                 std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
