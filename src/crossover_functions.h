@@ -38,6 +38,9 @@ template <class T>
 Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i);
 
 template <class T>
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i);
+
+template <class T>
 bool is_connected_to(Edge_T<T> ** e_table, uint64_t node_1, uint64_t node_2);
 
 template <class T>

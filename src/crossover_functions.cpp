@@ -207,31 +207,39 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
 template <class T>
 void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B){
     uint64_t i;
-    //uint64_t n_edges_circuit_A, n_edges_circuit_B;
+    uint64_t n_edges_circuit_A, n_edges_circuit_B;
+    Edge_T<T> * satisfies_common;
     //bool is_entry_A = false, is_entry_B = false;
     Edge_T<T> * ptr = NULL;
     for(i=0;i<n_nodes;i++){
-        if(e_table[i]->partition == -1){ // Its in a surrogate
+        if(e_table[i]->degree == 3 && e_table[i]->partition != -1 && e_table[i]->n_commons == 1){ // It has to have 1 common and 1 for each circuit, and be in a partition
             ptr = e_table[i]->next;
-            //n_edges_circuit_A = 0;
-            //n_edges_circuit_B = 0;
+            n_edges_circuit_A = 0;
+            n_edges_circuit_B = 0;
+            satisfies_common = NULL;
+            Pair<Edge_T<uint64_t>> my_pair = abstract_replace_surrogate_by_one(e_table, i);
+            if(my_pair._e1 == NULL || my_pair._e2 == NULL) continue;
             while(ptr != NULL){
-                if(e_table[ptr->node]->partition != -1){ // That connects a component so it is an entry or an exit
+                
+                if(ptr->common == COMMON) satisfies_common = ptr;
+                if(ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT_A) n_edges_circuit_A++;
+                if(ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT_B) n_edges_circuit_B++;
+                               
 
-                    if(ptr->incoming){ // entry
-                        e_table[ptr->node]->is_entry_cycle_A = true; e_table[ptr->node]->is_exit_cycle_A = false;
-                        entries_A->push(e_table[ptr->node]);    
-                        e_table[ptr->node]->is_entry_cycle_B = true; e_table[ptr->node]->is_exit_cycle_B = false;
-                        entries_B->push(e_table[ptr->node]);
+                /*
+                if(ptr->incoming){ // entry
+                    e_table[ptr->node]->is_entry_cycle_A = true; e_table[ptr->node]->is_exit_cycle_A = false;
+                    entries_A->push(e_table[ptr->node]);    
+                    e_table[ptr->node]->is_entry_cycle_B = true; e_table[ptr->node]->is_exit_cycle_B = false;
+                    entries_B->push(e_table[ptr->node]);
 
-                    }else{ // exit
-                        e_table[ptr->node]->is_entry_cycle_A = false; e_table[ptr->node]->is_exit_cycle_A = true; 
-                        exits_A->push(e_table[ptr->node]);
-                        e_table[ptr->node]->is_entry_cycle_B = false; e_table[ptr->node]->is_exit_cycle_B = true; 
-                        exits_B->push(e_table[ptr->node]);
-
-                    }                    
-                }
+                }else{ // exit
+                    e_table[ptr->node]->is_entry_cycle_A = false; e_table[ptr->node]->is_exit_cycle_A = true; 
+                    exits_A->push(e_table[ptr->node]);
+                    e_table[ptr->node]->is_entry_cycle_B = false; e_table[ptr->node]->is_exit_cycle_B = true; 
+                    exits_B->push(e_table[ptr->node]);
+                } 
+                */                   
                 /*
                 if(ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT_A){
                     n_edges_circuit_A++;
@@ -243,6 +251,25 @@ void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<
                 }
                 */
                 ptr = ptr->next;
+            }
+            if(satisfies_common != NULL && n_edges_circuit_A == 1){
+                if(satisfies_common->incoming){ // entry
+                    e_table[i]->is_entry_cycle_A = true; e_table[i]->is_exit_cycle_A = false;
+                    entries_A->push(e_table[i]);    
+                }else{ // exit
+                    e_table[i]->is_entry_cycle_A = false; e_table[i]->is_exit_cycle_A = true; 
+                    exits_A->push(e_table[i]);
+                }                    
+            }
+            if(satisfies_common != NULL && n_edges_circuit_B == 1){
+                if(satisfies_common->incoming){ // entry
+                    e_table[i]->is_entry_cycle_B = true; e_table[i]->is_exit_cycle_B = false;
+                    entries_B->push(e_table[i]);
+
+                }else{ // exit
+                    e_table[i]->is_entry_cycle_B = false; e_table[i]->is_exit_cycle_B = true; 
+                    exits_B->push(e_table[i]);
+                }                    
             }
             /*
             if(n_edges_circuit_A == 1){
@@ -493,6 +520,64 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
             FIFO_queue.pop();
         }
     }
+
+    
+    return surrogate;
+}
+
+template <class T>
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
+
+    Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
+    Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
+    
+    // Extend in both directions until one node with degree > 2 is found
+    uint64_t master_node = i;
+    route_start = e_table[i];
+    route_end = NULL;
+    last_replaced = e_table[i];
+    //printf("%" PRId64", ", e_table[last_replaced->node]->partition);
+    ptr = e_table[i]->next;
+
+    while(ptr != NULL){ // Until we find no more common edges
+        
+        // Loop until next common edge
+        while(ptr != NULL && ptr->common != COMMON){
+            ptr = ptr->next;
+        }
+        
+        if(ptr != NULL && ptr->node != last_replaced->node){
+            
+        
+            // Update previous so we wont traverse it again 
+            
+            //printf("%" PRId64", ", e_table[ptr->node]->partition);
+            last_replaced = e_table[master_node];
+            master_node = ptr->node;
+            route_end = e_table[ptr->node];
+
+            if(route_end->partition != -1 && route_start->partition != route_end->partition) goto finish;
+
+            // Not null implies we found common edge 
+            // Save this node as last and look for more 
+            ptr = e_table[ptr->node]->next;
+            
+        }else if(ptr != NULL){
+            // It is the same common edge as before, try to get next 
+            ptr = ptr->next;
+        }
+    }
+
+    finish:
+    //printf("\n");
+    if(route_start->partition != route_end->partition){
+        surrogate._e1 = route_start;
+        surrogate._e2 = route_end;
+    }else{
+        surrogate._e1 = NULL;
+        surrogate._e2 = NULL;
+    }
+    
 
     
     return surrogate;
@@ -937,6 +1022,7 @@ template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> 
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
+template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
 template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);

@@ -239,12 +239,22 @@ int main(int argc, char **av) {
 
             mark_entries_and_exists(n_alleles, e_table, &entries_A, &entries_B, &exits_A, &exits_B);
             
+            std::cout << "================================================================" << std::endl;
+            std::cout << "Combining " << std::endl;
+            ind[i].print_chromosome();
+            std::cout << " with: " << std::endl;
+            ind[j].print_chromosome();
+
             std::cout << "Entries A: "; while(!entries_A.empty()){ std::cout << entries_A.front()->node << ", "; entries_A.pop(); }
             std::cout << "Exits A: "; while(!exits_A.empty()){ std::cout << exits_A.front()->node << ", "; exits_A.pop(); }
+            std::cout << "Entries B: "; while(!entries_B.empty()){ std::cout << entries_B.front()->node << ", "; entries_B.pop(); }
+            std::cout << "Exits B: "; while(!exits_B.empty()){ std::cout << exits_B.front()->node << ", "; exits_B.pop(); }
             getchar();
             
             // To hold pairs of surrogates
             Quartet<Edge_T<uint64_t>> current_px;
+
+
 
             // Print partitions 
             for(uint64_t w=0;w<n_parts;w++){
@@ -281,11 +291,7 @@ int main(int argc, char **av) {
                     if(!is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e2->node)
                     && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e2->node) ){
 
-                        std::cout << "================================================================" << std::endl;
-                        std::cout << "Combining " << std::endl;
-                        ind[i].print_chromosome();
-                        std::cout << " with: " << std::endl;
-                        ind[j].print_chromosome();
+                        
                         
                         if(e_table[part_table[w].su_gates->v.left->node]->partition != (int64_t) w) the_other_partition = e_table[part_table[w].su_gates->v.left->node]->partition; else the_other_partition = e_table[part_table[w].su_gates->v.right->node]->partition;
 
