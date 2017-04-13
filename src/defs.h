@@ -87,6 +87,7 @@ struct Edge_T{
     bool is_exit_cycle_B;
     bool incoming;                      // Tells if the edge is incoming or outcoming (sequential order in TSP)
     uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
+
 };
 
 template <typename T>
@@ -107,3 +108,11 @@ struct PXTable{
     uint64_t n_surrogate_edges;
     List<Surrogate_Edge_T<T>> * su_gates; 
 };
+
+template <typename T>
+struct feasible_partition{
+    Edge_T<T> * entry;
+    Edge_T<T> * exit;
+};
+
+

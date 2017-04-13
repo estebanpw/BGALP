@@ -245,11 +245,9 @@ int main(int argc, char **av) {
             std::cout << " with: " << std::endl;
             ind[j].print_chromosome();
 
-            std::cout << "Entries A: "; while(!entries_A.empty()){ std::cout << entries_A.front()->node << ", "; entries_A.pop(); }
-            std::cout << "Exits A: "; while(!exits_A.empty()){ std::cout << exits_A.front()->node << ", "; exits_A.pop(); }
-            std::cout << "Entries B: "; while(!entries_B.empty()){ std::cout << entries_B.front()->node << ", "; entries_B.pop(); }
-            std::cout << "Exits B: "; while(!exits_B.empty()){ std::cout << exits_B.front()->node << ", "; exits_B.pop(); }
-            getchar();
+            
+            // Verify that all entries conduct to the same exit 
+            Pair<feasible_partition<uint64_t> **> feasibility = verify_entries_and_exits(n_parts, &entries_A, &entries_B, &exits_A, &exits_B, mp, e_table);
             
             // To hold pairs of surrogates
             Quartet<Edge_T<uint64_t>> current_px;
