@@ -45,7 +45,7 @@ template <class T>
 Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT);
 
 template <class T>
-Pair<feasible_partition<T> **> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table);
+Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table);
 
 template <class T>
 bool is_connected_to(Edge_T<T> ** e_table, uint64_t node_1, uint64_t node_2);

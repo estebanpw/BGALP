@@ -38,6 +38,12 @@ struct Pair{
 };
 
 template <typename T>
+struct CPair{
+    T _e1;
+    T _e2;
+};
+
+template <typename T>
 struct Quartet{
     Pair<T> _p1;
     Pair<T> _p2;
@@ -113,6 +119,12 @@ template <typename T>
 struct feasible_partition{
     Edge_T<T> * entry;
     Edge_T<T> * exit;
+};
+
+template <typename T>
+struct Feasible{
+    CPair<feasible_partition<T> **> feasible;
+    uint64_t * n_entries;
 };
 
 

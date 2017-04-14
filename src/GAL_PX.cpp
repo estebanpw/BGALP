@@ -247,7 +247,18 @@ int main(int argc, char **av) {
 
             
             // Verify that all entries conduct to the same exit 
-            Pair<feasible_partition<uint64_t> **> feasibility = verify_entries_and_exits(n_parts, &entries_A, &entries_B, &exits_A, &exits_B, mp, e_table);
+            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, &entries_A, &entries_B, &exits_A, &exits_B, mp, e_table);
+
+            std::cout << "Summary of partitioning\n";
+            for(uint64_t w=0;w<n_parts;w++){
+                if(feasibility_partitioning.feasible._e1[w] != NULL){
+                    std::cout << "Partition " << w << " has " << feasibility_partitioning.n_entries[w] << " entries and exits: \n";
+                    for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
+                        std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
+                    }
+                }
+            }
+            getchar();
             
             // To hold pairs of surrogates
             Quartet<Edge_T<uint64_t>> current_px;

@@ -291,16 +291,20 @@ int compare_Edges_T(const void * a, const void * b){
 }
 
 template <class T>
-Pair<feasible_partition<T> **> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table){
+Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table){
     
     std::queue<Edge_T<T> *> aux_queue;
-    uint64_t n_nodes_part_A[n_partitions]; for(uint64_t i=0;i<n_partitions;i++){ n_nodes_part_A[i] = 0; }
+    Feasible<T> feasible; 
+    feasible.n_entries = (uint64_t *) mp->request_bytes(n_partitions*sizeof(uint64_t));
+    for(uint64_t i=0;i<n_partitions;i++){ feasible.n_entries[i] = 0; }
     uint64_t n_nodes_part_B[n_partitions]; for(uint64_t i=0;i<n_partitions;i++){ n_nodes_part_B[i] = 0; }
-    Pair<feasible_partition<T> **> feasibility;
+    //Pair<feasible_partition<T> **> feasibility;
     feasible_partition<T> ** parts_A = (feasible_partition<T> **) mp->request_bytes(n_partitions*sizeof(feasible_partition<T> *));
     feasible_partition<T> ** parts_B = (feasible_partition<T> **) mp->request_bytes(n_partitions*sizeof(feasible_partition<T> *));
-    feasibility._e1 = &parts_A;
-    feasibility._e2 = &parts_B;
+    
+    
+    feasible.feasible._e1 = parts_A;
+    feasible.feasible._e2 = parts_B;
     uint64_t part_indexes[n_partitions]; for(uint64_t i=0;i<n_partitions;i++){ part_indexes[i] = 0; }
 
     // Check how many for each partition 
@@ -311,14 +315,14 @@ Pair<feasible_partition<T> **> verify_entries_and_exits(uint64_t n_partitions, s
             std::cout << "$ " << entries_A->front()->node << ", " << entries_A->front()->partition << std::endl;
             aux_queue.push(ptr);
             entries_A->pop();
-            n_nodes_part_A[ptr->partition]++;
+            feasible.n_entries[ptr->partition]++;
         }    
     }
     // Reinsert
     while(!aux_queue.empty()){ entries_A->push(aux_queue.front()); aux_queue.pop(); }
     // Generate arrays for partitioning
     for(uint64_t i=0;i<n_partitions;i++){
-        parts_A[i] = (feasible_partition<T> *) mp->request_bytes(n_nodes_part_A[i] * sizeof(feasible_partition<T>));
+        parts_A[i] = (feasible_partition<T> *) mp->request_bytes(feasible.n_entries[i] * sizeof(feasible_partition<T>));
     }
     std::cout << " -----------\n";
     // Copy references
@@ -369,22 +373,27 @@ Pair<feasible_partition<T> **> verify_entries_and_exits(uint64_t n_partitions, s
     uint64_t j;
     for(uint64_t i=0;i<n_partitions;i++){
         // If different number of entries, deactivate partition
-        if(n_nodes_part_A[i] != n_nodes_part_B[i]){ parts_A[i] = NULL; parts_B[i] = NULL; continue; }
+        if(feasible.n_entries[i] != n_nodes_part_B[i]){ parts_A[i] = NULL; parts_B[i] = NULL; continue; }
         
-        for(j = 0; j<n_nodes_part_A[i]; j++){
+        for(j = 0; j<feasible.n_entries[i]; j++){
 
             std::cout << i << " - " << j << std::endl;
             std::cout << "(A) " << parts_A[i][j].entry->node << ", " << parts_A[i][j].entry->partition << std::endl;
             std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << std::endl;
 
-            //Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A);
-            std::cout << "END\n";
-            //Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B);
+            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A);
+            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B);
 
             // If exiting vertices are different this partition is not feasible
-            //if(pA._e2->node != pB._e2->node){ parts_A[i] = NULL; parts_B[i] = NULL; break; }
+            if(pA._e2->node != pB._e2->node){ 
+                parts_A[i] = NULL; parts_B[i] = NULL; break; 
+            }else{
+                parts_A[i][j].exit = pA._e2;
+                parts_B[i][j].exit = pB._e2;
+            }
         }
         std::cout << "Partition " << i << " is feasible!" << std::endl;
+        getchar();
     }
     /*    
     Multipartitioning<T> * multiparts = (Multipartitioning<T> *) mp->request_bytes(sizeof(Multipartitioning<T>));
@@ -404,8 +413,8 @@ Pair<feasible_partition<T> **> verify_entries_and_exits(uint64_t n_partitions, s
     std::cout << "Exits B: "; while(!exits_B->empty()){ std::cout << exits_B->front()->node << ", "; exits_B->pop(); }
     */
     
-
-    return feasibility;
+    //feasible.feasible = feasibility;
+    return feasible;
 }
 
 template <class T>
@@ -625,7 +634,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
     while(ptr != NULL){ // Until we find no more common edges
         
         // Loop until next uncommon and from the circuit
-        while(ptr != NULL && ptr->common == COMMON && ptr->belongs_to_cycle == CIRCUIT){
+        while(ptr != NULL && ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT){
             ptr = ptr->next;
         }
         
@@ -1160,7 +1169,7 @@ template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> 
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
-template Pair<feasible_partition<uint64_t> **> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table);
+template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
