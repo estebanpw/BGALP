@@ -413,10 +413,11 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
             
             if(pB._e2 == NULL){ std::cout << "Make null (2)\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
             
-            if(length_A != length_B){ std::cout << "the fucking lengths are " << length_A <<" "  <<length_B << "\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
+            if(length_A != length_B){ std::cout << "the lengths differ " << length_A <<" "  <<length_B << "\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
 
             // If exiting vertices are different this partition is not feasible
-            if(pA._e2->node != pB._e2->node && pA._e2->node != pB._e1->node){ 
+            //if(pA._e2->node != pB._e2->node && pA._e2->node != pB._e1->node || (pA._e1->node == pB._e1 || pA._e1->node == pB._e2) ){ 
+            if((pA._e1 != pB._e1 && pA._e1 != pB._e2) || (pA._e2 != pB._e1 && pA._e2 != pB._e2)){
                 std::cout << "Destroying" << std::endl;
                 parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
             }else{
@@ -978,6 +979,7 @@ T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool 
     std::cout << " adding: ";
 
     if(reverse == false){
+        std::cout << " direct ";
         do{
 
             
@@ -989,29 +991,41 @@ T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool 
             uint64_t prescore = score;
             if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
             else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
-            std::cout << score-prescore << ",";
+            std::cout << *c->get_allele(i) << ",";
 
         //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
         //}while(e_table[*c->get_allele(i)]->partition != partition2);
         //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
         }while(*c->get_allele(i) != end->node);
     }else{
+        std::cout << " reverse ";
         do{
 
-            if(i==0) i = n_nodes-1; else i--;
+            //if(i==0) i = n_nodes-1; else i--;
+            
+            //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+            // Compute here
+            /*
+            uint64_t prescore = score;
+            if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
+            else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
+            std::cout << *c->get_allele(i) << ",";
+            */
+            i = (i + 1) % n_nodes;
             
             //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
 
             // Compute here
             uint64_t prescore = score;
-            if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
-            else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
-            std::cout << score-prescore << ",";
+            if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
+            else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+            std::cout << *c->get_allele(i) << ",";
 
         //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
         //}while(e_table[*c->get_allele(i)]->partition != partition2);
         //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
-        }while(*c->get_allele(i) != end->node);
+        }while(*c->get_allele(i) != start->node);
     }
 
     
