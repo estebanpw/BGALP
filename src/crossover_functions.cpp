@@ -94,7 +94,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = next_allele;
                 et_ptr->common = UNCOMMON;
-                et_ptr->incoming = true;
+                if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = true; else et_ptr->incoming_B = true;
                 et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
                 if(previous != e_table[current_allele] && previous != NULL) previous->next = et_ptr; else e_table[current_allele]->next = et_ptr;
@@ -102,6 +102,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
             }else{
                 // It exists, so its a common one
                 et_ptr->common = COMMON;
+                if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = true; else et_ptr->incoming_B = true;
             }
 
 
@@ -123,7 +124,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = previous_allele;
                 et_ptr->common = UNCOMMON;
-                et_ptr->incoming = false; // It goes out
+                if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = false; else et_ptr->incoming_B = false; // It goes out
                 et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
                 if(previous != e_table[current_allele] && previous != NULL) previous->next = et_ptr; else e_table[current_allele]->next = et_ptr;
@@ -131,6 +132,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
             }else{
                 // It exists, so its a common one
                 et_ptr->common = COMMON;
+                if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = false; else et_ptr->incoming_B = false;
             }
         }
     }
@@ -140,7 +142,12 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
     Edge_T<T> * et_ptr;
     et_ptr = e_table[*a->get_allele(0)]->next;
     while(et_ptr != NULL){
-        if(et_ptr->node == *a->get_allele(a->get_length()-1)){ et_ptr->common = COMMON; was_found = true; break; }
+        if(et_ptr->node == *a->get_allele(a->get_length()-1)){ 
+            et_ptr->common = COMMON;
+            if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = true; else et_ptr->incoming_B = true;
+            was_found = true; 
+            break; 
+        }
         if(et_ptr->next == NULL) break;
         et_ptr = et_ptr->next;
     }
@@ -149,7 +156,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = *a->get_allele(a->get_length()-1);
         et_ptr->next->common = UNCOMMON;
-        et_ptr->next->incoming = true;
+        if(cycle_id == CIRCUIT_A) et_ptr->next->incoming_A = true; else et_ptr->next->incoming_B = true;
         et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;
         //printf("added (1) %" PRIu64"\n", et_ptr->next->node);
@@ -159,7 +166,12 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
     was_found = false;
     et_ptr = e_table[*a->get_allele(a->get_length()-1)]->next;
     while(et_ptr != NULL){
-        if(et_ptr->node == *a->get_allele(0)){ et_ptr->common = COMMON; was_found = true; break; }
+        if(et_ptr->node == *a->get_allele(0)){ 
+            et_ptr->common = COMMON; 
+            if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = false; else et_ptr->incoming_B = false; 
+            was_found = true; 
+            break; 
+        }
         if(et_ptr->next == NULL) break;
         et_ptr = et_ptr->next;
     }
@@ -168,7 +180,7 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = *a->get_allele(0);
         et_ptr->next->common = UNCOMMON;
-        et_ptr->next->incoming = false;
+        if(cycle_id == CIRCUIT_A) et_ptr->next->incoming_A = false; else et_ptr->next->incoming_B = false;
         et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;
         //printf("added (2) %" PRIu64"\n", et_ptr->next->node);
@@ -230,7 +242,7 @@ void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<
                 ptr = ptr->next;
             }
             if(satisfies_common != NULL && n_edges_circuit_A == 1){
-                if(satisfies_common->incoming){ // entry
+                if(satisfies_common->incoming_A){ // entry
                     e_table[i]->is_entry_cycle_A = true; e_table[i]->is_exit_cycle_A = false;
                     entries_A->push(e_table[i]);    
                 }else{ // exit
@@ -239,7 +251,7 @@ void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<
                 }                    
             }
             if(satisfies_common != NULL && n_edges_circuit_B == 1){
-                if(satisfies_common->incoming){ // entry
+                if(satisfies_common->incoming_B){ // entry
                     e_table[i]->is_entry_cycle_B = true; e_table[i]->is_exit_cycle_B = false;
                     entries_B->push(e_table[i]);
 
@@ -345,6 +357,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
         Edge_T<T> * ptr = entries_B->front();
         while(!entries_B->empty() && ptr->partition == entries_B->front()->partition){
             ptr = entries_B->front();
+            std::cout << "& " << entries_B->front()->node << ", " << entries_B->front()->partition << std::endl;
             aux_queue.push(ptr);
             entries_B->pop();
             n_nodes_part_B[ptr->partition]++;
@@ -378,15 +391,19 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
         for(j = 0; j<feasible.n_entries[i]; j++){
 
             std::cout << i << " - " << j << std::endl;
-            std::cout << "(A) " << parts_A[i][j].entry->node << ", " << parts_A[i][j].entry->partition << std::endl;
-            std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << std::endl;
-
+            std::cout << "(A) " << parts_A[i][j].entry->node << ", " << parts_A[i][j].entry->partition << " ends in ";
             Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A);
+            
+            if(pA._e2 == NULL) terror("Returned node is null"); else std::cout << pA._e2->node << std::endl;
+            
+
+            std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << " ends in ";
             Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B);
+            if(pB._e2 == NULL) terror("Returned node is null"); else std::cout << pB._e2->node << std::endl;
 
             // If exiting vertices are different this partition is not feasible
             if(pA._e2->node != pB._e2->node){ 
-                parts_A[i] = NULL; parts_B[i] = NULL; break; 
+                parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
             }else{
                 parts_A[i][j].exit = pA._e2;
                 parts_B[i][j].exit = pB._e2;
@@ -394,6 +411,9 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
         }
         std::cout << "Partition " << i << " is feasible!" << std::endl;
         getchar();
+
+        out_of_part:
+        ;
     }
     /*    
     Multipartitioning<T> * multiparts = (Multipartitioning<T> *) mp->request_bytes(sizeof(Multipartitioning<T>));
@@ -625,6 +645,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
     
     // Extend in both directions until one node with degree > 2 is found
     uint64_t master_node = i;
+    int64_t start_part = e_table[i]->partition;
     route_start = e_table[i];
     route_end = NULL;
     last_replaced = e_table[i];
@@ -634,11 +655,14 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
     while(ptr != NULL){ // Until we find no more common edges
         
         // Loop until next uncommon and from the circuit
-        while(ptr != NULL && ptr->common == UNCOMMON && ptr->belongs_to_cycle == CIRCUIT){
+        /*
+        while(ptr->belongs_to_cycle != CIRCUIT && ptr->common == COMMON){
+            if(ptr == NULL) break;
             ptr = ptr->next;
         }
-        
-        if(ptr != NULL && ptr->node != last_replaced->node){
+        */
+
+        if(ptr != NULL && ptr->node != last_replaced->node && ptr->belongs_to_cycle == CIRCUIT && e_table[ptr->node]->partition == start_part){
             
         
             // Update previous so we wont traverse it again 
@@ -648,16 +672,23 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
             master_node = ptr->node;
             route_end = e_table[ptr->node];
 
-            if(route_end->is_exit_cycle_A || route_end->is_exit_cycle_B) goto finish;
+            if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
+            if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) goto finish; 
 
             // Not null implies we found common edge 
             // Save this node as last and look for more 
             ptr = e_table[ptr->node]->next;
             
-        }else if(ptr != NULL){
+        }else{
+            if(ptr != NULL) ptr = ptr->next;
+        }
+        /*
+        else if(ptr != NULL){
             // It is the same common edge as before, try to get next 
             ptr = ptr->next;
         }
+        */
+        
     }
 
     finish:
@@ -884,6 +915,41 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
         }
     }
 }
+
+template <class T>
+T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table){
+    T score = 0;
+    uint64_t swath_start_P1 = 0;
+    uint64_t i;
+    uint64_t n_nodes = c->get_length();
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix * ) solution_info;
+
+    for(i=0;i<n_nodes;i++){
+        // Find first swath in P1 
+        if(*c->get_allele(i) == start->node) swath_start_P1 = i;
+    }
+
+    i = swath_start_P1;
+
+    do{
+
+        
+        i = (i + 1) % n_nodes;
+        
+        //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+        // Compute here
+        if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
+        else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+
+    //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
+    //}while(e_table[*c->get_allele(i)]->partition != partition2);
+    //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
+    }while(*c->get_allele(i) != end->node);
+    
+    //std::cout << std::endl;
+    return score;
+} 
 
 template <class T>
 T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> * end, Chromosome<T> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<T> ** e_table){
@@ -1174,6 +1240,7 @@ template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
+template uint64_t evaluate_partition_subtours_multiple(Edge_T<uint64_t> * start, Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, Edge_T<uint64_t> ** e_table);
 template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
 template void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1);
