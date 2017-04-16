@@ -94,6 +94,8 @@ struct Edge_T{
     bool incoming_A;                      // Tells if the edge is incoming or outcoming (sequential order in TSP)
     bool incoming_B;
     uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
+    int64_t connects_partition;         // If its a common edge, to which partition does it connect?
+    struct Edge_T * out_node;
 
 };
 
@@ -120,6 +122,7 @@ template <typename T>
 struct feasible_partition{
     Edge_T<T> * entry;
     Edge_T<T> * exit;
+    bool reverse;
 };
 
 template <typename T>

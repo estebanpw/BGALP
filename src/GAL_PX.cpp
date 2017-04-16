@@ -257,11 +257,11 @@ int main(int argc, char **av) {
                     std::cout << "Partition " << w << " has " << feasibility_partitioning.n_entries[w] << " entries and exits: \n";
                     for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
                         std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        score_part_A += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, &ind[i], (void *) &tsp, e_table);
+                        score_part_A += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
                     }
                     for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
                         std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, &ind[j], (void *) &tsp, e_table);
+                        score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[j], (void *) &tsp, e_table);
                     }
 
                     std::cout << "Scores:\n(A): " << score_part_A << "\n(B): " << score_part_B << std::endl;

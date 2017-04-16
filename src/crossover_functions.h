@@ -42,7 +42,7 @@ template <class T>
 Pair<Edge_T<T>> abstract_replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i);
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT);
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length);
 
 template <class T>
 Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table);
@@ -57,7 +57,7 @@ template <class T>
 void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n_nodes, memory_pool * mp);
 
 template <class T>
-T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table);
+T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table);
 
 template <class T>
 T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> * end, Chromosome<T> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<T> ** e_table);

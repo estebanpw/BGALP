@@ -205,6 +205,8 @@ void generate_degree(uint64_t n_nodes, Edge_T<T> ** e_table){
             e_table[i]->is_entry_cycle_B = false;
             e_table[i]->is_exit_cycle_A = false;
             e_table[i]->is_exit_cycle_B = false;
+            e_table[i]->out_node = NULL;
+            e_table[i]->connects_partition = -1;
             while(ptr != NULL){
                 degree++;
                 if(ptr->common == COMMON) n_commons++;
@@ -392,21 +394,44 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
 
             std::cout << i << " - " << j << std::endl;
             std::cout << "(A) " << parts_A[i][j].entry->node << ", " << parts_A[i][j].entry->partition << " ends in ";
-            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A);
             
-            if(pA._e2 == NULL) terror("Returned node is null"); else std::cout << pA._e2->node << std::endl;
+            uint64_t length_A, length_B;
+
+            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A);
+            
+            std::cout << "\n";
+
+            if(pA._e2 == NULL){ std::cout << "Make null (1)\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
             
 
             std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << " ends in ";
-            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B);
-            if(pB._e2 == NULL) terror("Returned node is null"); else std::cout << pB._e2->node << std::endl;
+            
+            
+            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B);
+
+            std::cout << "\n";
+            
+            if(pB._e2 == NULL){ std::cout << "Make null (2)\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
+            
+            if(length_A != length_B){ std::cout << "the fucking lengths are " << length_A <<" "  <<length_B << "\n"; parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; }
 
             // If exiting vertices are different this partition is not feasible
-            if(pA._e2->node != pB._e2->node){ 
+            if(pA._e2->node != pB._e2->node && pA._e2->node != pB._e1->node){ 
+                std::cout << "Destroying" << std::endl;
                 parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
             }else{
+                
                 parts_A[i][j].exit = pA._e2;
                 parts_B[i][j].exit = pB._e2;
+                parts_B[i][j].reverse = false;
+
+                if(pA._e2->node == pB._e1->node){
+                    // They are reversed 
+                    parts_B[i][j].reverse = true;
+                    std::cout << "reversed to: " << pB._e1->node << "; " << pB._e2->node << "\n"; 
+                }
+                
+                
             }
         }
         std::cout << "Partition " << i << " is feasible!" << std::endl;
@@ -638,7 +663,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 }
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT){
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length){
 
     Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
     Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
@@ -647,6 +672,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
     uint64_t master_node = i;
     int64_t start_part = e_table[i]->partition;
     route_start = e_table[i];
+    *length = 0;
     route_end = NULL;
     last_replaced = e_table[i];
     //printf("%" PRId64", ", e_table[last_replaced->node]->partition);
@@ -661,42 +687,48 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
             ptr = ptr->next;
         }
         */
-
-        if(ptr != NULL && ptr->node != last_replaced->node && ptr->belongs_to_cycle == CIRCUIT && e_table[ptr->node]->partition == start_part){
+        // It doesnt matter if its common as long as it connects the same partition
+        //if(ptr != NULL && ptr->node != last_replaced->node && (ptr->belongs_to_cycle == CIRCUIT || ptr->common == COMMON)){
+        if(ptr != NULL && ptr->node != last_replaced->node && (ptr->belongs_to_cycle == CIRCUIT || ptr->common == COMMON)){
+            if((CIRCUIT == CIRCUIT_A && ptr->incoming_A == false) || (CIRCUIT == CIRCUIT_B && ptr->incoming_B == false)){
+                // Update previous so we wont traverse it again 
             
+                std::cout<< ptr->node << ", ";
+                last_replaced = e_table[master_node];
+                master_node = ptr->node;
+                route_end = e_table[ptr->node];
+
+                if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
+                if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) goto finish; 
+
+                // Not null implies we found common edge 
+                // Save this node as last and look for more 
+                // Jump common tour
+                
+                (*length)++;
+                ptr = e_table[ptr->node]->next;
+                
+            }else{
+                if(ptr != NULL) ptr = ptr->next;
+            }
         
-            // Update previous so we wont traverse it again 
-            
-            //printf("%" PRId64", ", e_table[ptr->node]->partition);
-            last_replaced = e_table[master_node];
-            master_node = ptr->node;
-            route_end = e_table[ptr->node];
 
-            if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
-            if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) goto finish; 
-
-            // Not null implies we found common edge 
-            // Save this node as last and look for more 
-            ptr = e_table[ptr->node]->next;
             
         }else{
             if(ptr != NULL) ptr = ptr->next;
         }
-        /*
-        else if(ptr != NULL){
-            // It is the same common edge as before, try to get next 
-            ptr = ptr->next;
-        }
-        */
+        
         
     }
-
+    std::cout << std::endl;
     finish:
     //printf("\n");
     if(route_end->is_exit_cycle_A || route_end->is_exit_cycle_B){
         surrogate._e1 = route_start;
         surrogate._e2 = route_end;
+        std::cout << "The good way\n";
     }else{
+        std::cout << "The bad way\n";
         surrogate._e1 = NULL;
         surrogate._e2 = NULL;
     }
@@ -720,6 +752,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t
     while(ptr != NULL){ // Until we find no more common edges
         
         // Loop until next common edge
+        
         while(ptr != NULL && ptr->common != COMMON){
             ptr = ptr->next;
         }
@@ -855,6 +888,7 @@ void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<T> ** e_tab
 }
 
 
+
 template <class T>
 void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n_nodes, memory_pool * mp){
     uint64_t i;
@@ -867,7 +901,16 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
         if(e_table[i]->n_commons == 1){
             pair = replace_surrogate_by_one(e_table, i);
             
-            if(pair._e1 == NULL || pair._e2 == NULL) continue;
+            
+
+            if(pair._e1 == NULL || pair._e2 == NULL) {
+                continue; 
+            }else{
+                e_table[pair._e1->node]->connects_partition = pair._e2->partition;
+                e_table[pair._e1->node]->out_node = e_table[pair._e2->node];
+                e_table[pair._e2->node]->connects_partition = pair._e1->partition;
+                e_table[pair._e2->node]->out_node = e_table[pair._e1->node];
+            }
             if(pair._e1->partition == pair._e2->partition) continue;
             
 
@@ -917,7 +960,7 @@ void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n
 }
 
 template <class T>
-T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table){
+T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table){
     T score = 0;
     uint64_t swath_start_P1 = 0;
     uint64_t i;
@@ -926,28 +969,54 @@ T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, Chrom
 
     for(i=0;i<n_nodes;i++){
         // Find first swath in P1 
-        if(*c->get_allele(i) == start->node) swath_start_P1 = i;
+        if(reverse == false && *c->get_allele(i) == start->node) swath_start_P1 = i;
+        if(reverse == true && *c->get_allele(i) == end->node) swath_start_P1 = i;
     }
 
     i = swath_start_P1;
 
-    do{
+    std::cout << " adding: ";
 
-        
-        i = (i + 1) % n_nodes;
-        
-        //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+    if(reverse == false){
+        do{
 
-        // Compute here
-        if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
-        else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+            
+            i = (i + 1) % n_nodes;
+            
+            //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
 
-    //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
-    //}while(e_table[*c->get_allele(i)]->partition != partition2);
-    //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
-    }while(*c->get_allele(i) != end->node);
+            // Compute here
+            uint64_t prescore = score;
+            if(i == 0) score += tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
+            else score += tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+            std::cout << score-prescore << ",";
+
+        //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
+        //}while(e_table[*c->get_allele(i)]->partition != partition2);
+        //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
+        }while(*c->get_allele(i) != end->node);
+    }else{
+        do{
+
+            if(i==0) i = n_nodes-1; else i--;
+            
+            //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+            // Compute here
+            uint64_t prescore = score;
+            if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
+            else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
+            std::cout << score-prescore << ",";
+
+        //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
+        //}while(e_table[*c->get_allele(i)]->partition != partition2);
+        //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
+        }while(*c->get_allele(i) != end->node);
+    }
+
     
-    //std::cout << std::endl;
+    
+    std::cout << std::endl;
     return score;
 } 
 
@@ -1237,10 +1306,10 @@ template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
-template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT);
+template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
-template uint64_t evaluate_partition_subtours_multiple(Edge_T<uint64_t> * start, Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, Edge_T<uint64_t> ** e_table);
+template uint64_t evaluate_partition_subtours_multiple(Edge_T<uint64_t> * start, Edge_T<uint64_t> * end, bool reverse, Chromosome<uint64_t> * c, void * solution_info, Edge_T<uint64_t> ** e_table);
 template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
 template void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1);
