@@ -51,12 +51,54 @@ void print_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table){
             while(et_ptr != NULL){
                 std::cout << et_ptr->node;
                 if(et_ptr->common == COMMON) std::cout << "*";
+                if(et_ptr->incoming_A) std::cout<<"+a";
+                if(et_ptr->incoming_B) std::cout<<"+b";
                 std::cout << ", ";
                 et_ptr = et_ptr->next;
             }
             std::cout << std::endl;
         }
     }
+    std::cout << "# ---------------" << std::endl;
+}
+
+template <class T>
+void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
+    Edge_T<T> * et_ptr;
+    for(uint64_t i=0;i<n_nodes;i++){
+        if(e_table[i] != NULL){
+
+            std::cout << e_table[i]->partition << " -> (" << e_table[i]->degree << ") @" << i << ": ";
+            et_ptr = e_table[i]->next;
+            while(et_ptr != NULL){
+                std::cout << et_ptr->node;
+                if(et_ptr->common == COMMON) std::cout << "*";
+                if(et_ptr->incoming_A) std::cout<<"+a";
+                if(et_ptr->incoming_B) std::cout<<"+b";
+                std::cout << ", ";
+                et_ptr = et_ptr->next;
+            }
+            std::cout << std::endl;
+        }
+    }
+
+    for(uint64_t i=n_nodes;i<2*n_nodes;i++){
+        if(e_table[i] != NULL){
+
+            std::cout << e_table[i]->partition << "$$ -> (" << e_table[i]->degree << ") @" << i-n_nodes << ": ";
+            et_ptr = e_table[i]->next;
+            while(et_ptr != NULL){
+                std::cout << et_ptr->node;
+                if(et_ptr->common == COMMON) std::cout << "*";
+                if(et_ptr->incoming_A) std::cout<<"+a";
+                if(et_ptr->incoming_B) std::cout<<"+b";
+                std::cout << ", ";
+                et_ptr = et_ptr->next;
+            }
+            std::cout << std::endl;
+        }
+    }
+
     std::cout << "# ---------------" << std::endl;
 }
 
@@ -83,5 +125,6 @@ template void random_shuffle_templated<uint64_t>(uint64_t n_elements, uint64_t *
 template void random_shuffle_templated<unsigned char>(uint64_t n_elements, unsigned char * vector, uint64_t seed, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
 template void restart_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
 template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
 template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);

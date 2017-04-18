@@ -208,6 +208,17 @@ int main(int argc, char **av) {
             // Calculate degree
             generate_degree(n_alleles, e_table);
 
+            print_edge_tables(n_alleles, e_table);
+
+            // Insert ghost vertices
+            add_ghost_vertices(n_alleles, e_table, mp);
+
+            print_edge_tables_ghosted(n_alleles, e_table);
+            getchar();
+
+            /*
+
+
             // Locate partitions (attempt to find only two parts.)
             uint64_t node_id, current_label = 0;
             bool keep_partitioning = true;
@@ -270,13 +281,16 @@ int main(int argc, char **av) {
             getchar();
             
             continue;
+            */
+
+
 
             
             // To hold pairs of surrogates
-            Quartet<Edge_T<uint64_t>> current_px;
+            //Quartet<Edge_T<uint64_t>> current_px;
 
 
-
+            /*
             // Print partitions 
             for(uint64_t w=0;w<n_parts;w++){
 
@@ -357,6 +371,7 @@ int main(int argc, char **av) {
                 }
                 
             }
+            */
             /*
             if(n_parts == 2){
                 // Find if partition crossover is feasible

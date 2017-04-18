@@ -48,6 +48,9 @@ template <class T>
 Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table);
 
 template <class T>
+void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp);
+
+template <class T>
 bool is_connected_to(Edge_T<T> ** e_table, uint64_t node_1, uint64_t node_2);
 
 template <class T>

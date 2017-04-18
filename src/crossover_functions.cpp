@@ -467,10 +467,10 @@ template <class T>
 void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp){
 
     uint64_t i;
-    Edge_T<T> * b, * c, * d, * e, * e_ptr, * e_aux_ptr;
+    Edge_T<T> * b, * c, * d, * e;
     
     for(i=0;i<n_nodes;i++){
-        if(e_table[i]->degree == 4){
+        if(e_table[i]->degree > 3){
             // Found a vertex with degree 4, split it and add a ghost vertex
 
             // Make the connections i.e. if we have: 
@@ -482,51 +482,185 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
 
 
             // Lower degree 
-            e_table[i]->degree = 2;
+            e_table[i]->degree = 3;
+            e_table[i]->n_commons = 1;
+
 
             // First, insert the new node at position n_nodes+i 
             e_table[n_nodes+i] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
-            e_table[n_nodes+i]->node = e_table[i]->node;
-            e_table[n_nodes+i]->degree = 2;
-            e_table[n_nodes+i]->next = NULL;
+            e_table[n_nodes+i]->node = n_nodes+i;
+            e_table[n_nodes+i]->degree = 3;
+            e_table[n_nodes+i]->n_commons = 1; // The weighted zero
+            e_table[n_nodes+i]->partition = -1; // Yet unpartitioned
+            
             
             // Get references 
-            b = e_table[n_nodes+i]->next;
-            c = e_table[n_nodes+i]->next->next;
-            d = e_table[n_nodes+i]->next->next->next;
-            e = e_table[n_nodes+i]->next->next->next->next;
+            b = e_table[i]->next;
+            c = e_table[i]->next->next;
+            d = e_table[i]->next->next->next;
+            e = e_table[i]->next->next->next->next;
 
-            // Disconnect d and e 
+            // Disconnect all
+            e_table[n_nodes+i]->next = NULL;
+            b->next = NULL;
             c->next = NULL;
+            d->next = NULL;
 
-            // Connect d and e to a' 
-            e_table[n_nodes+i]->next = d;
+            Edge_T<T> * last_added = NULL;
+            bool incoming[4] = { false, false, false, false };
 
-            // Delete referece to a from d, e 
-            // Case for d 
-            e_ptr = e_table[d->node]->next;
-            while(e_ptr->node != e_table[n_nodes+i]->node){
-                e_aux_ptr = e_ptr; // Holds the previous one
-                e_ptr = e_ptr->next;
+            // Reconnect to a those that are incoming 
+            if((b->incoming_A && b->belongs_to_cycle == CIRCUIT_A) || (b->incoming_B && b->belongs_to_cycle == CIRCUIT_B)){
+                e_table[i]->next = b;
+                last_added = b;
+                incoming[0] = true;
             }
-            e_aux_ptr->next = e_ptr->next; // Actual disconnection
-            e_table[d->node]->degree--;
-            // Case for e 
-            e_ptr = e_table[e->node]->next;
-            while(e_ptr->node != e_table[n_nodes+i]->node){
-                e_aux_ptr = e_ptr; // Holds the previous one
-                e_ptr = e_ptr->next;
+            if((c->incoming_A && c->belongs_to_cycle == CIRCUIT_A) || (c->incoming_B && c->belongs_to_cycle == CIRCUIT_B)){
+                if(last_added == NULL){
+                    e_table[i]->next = c;
+                }else{
+                    last_added->next = c;
+                }
+                last_added = c;
+                incoming[1] = true;
             }
-            e_aux_ptr->next = e_ptr->next; // Actual disconnection
-            e_table[e->node]->degree--;
+            if((d->incoming_A && d->belongs_to_cycle == CIRCUIT_A) || (d->incoming_B && d->belongs_to_cycle == CIRCUIT_B)){
+                if(last_added == NULL){
+                    e_table[i]->next = d;
+                }else{
+                    last_added->next = d;
+                }
+                last_added = d;
+                incoming[2] = true;
+            }
+            if((e->incoming_A && e->belongs_to_cycle == CIRCUIT_A) || (e->incoming_B && e->belongs_to_cycle == CIRCUIT_B)){
+                if(last_added == NULL){
+                    e_table[i]->next = e;
+                }else{
+                    last_added->next = e;
+                }
+                last_added = e;
+                incoming[3] = true;
+            }
 
-
-            // Add reference to a' from d, e 
+            // Add connections between a and a'
+            if(last_added == NULL){ std::cout<< "With " << i << "\n";  terror("Its impossible");}
+            last_added->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+            last_added->next->node = n_nodes+i;
+            last_added->next->common = COMMON;
+            last_added->next->next = NULL;
+            last_added->next->incoming_A = false; // Its going out in both cases
+            last_added->next->incoming_B = false;
+            last_added->next->connects_partition = -1;
+            last_added->next->out_node = NULL;
             
             
+            // Those that are false in "incoming" should be added to a'
+            // And their links to a should be removed
+            last_added = NULL;
+            if(!incoming[0]){
+                
+                e_table[n_nodes+i]->next = b;
+                last_added = b;
+                Edge_T<T> * edge_new = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+                edge_new->node = n_nodes+i;
+                edge_new->common = UNCOMMON;
+                edge_new->belongs_to_cycle = b->belongs_to_cycle;
+                edge_new->incoming_A = false; edge_new->incoming_B = false;
+                edge_new->next = e_table[b->node]->next;
+                e_table[b->node]->next = edge_new;
+                
+                Edge_T<T> * previous_node = e_table[b->node];
+                Edge_T<T> * killer_node = e_table[b->node]->next;
+                while(killer_node != NULL && killer_node->node != i){
+                    previous_node = killer_node;
+                    killer_node = killer_node->next;
+                }
+                if(killer_node != NULL) previous_node->next = killer_node->next; else previous_node->next = NULL;
+                
+            }
+            if(!incoming[1]){
+                if(last_added == NULL){
+                    e_table[n_nodes+i]->next = c;
+                }else{
+                    last_added->next = c;
+                }
+                last_added = c;
+                Edge_T<T> * edge_new = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+                edge_new->node = n_nodes+i;
+                edge_new->common = UNCOMMON;
+                edge_new->belongs_to_cycle = c->belongs_to_cycle;
+                edge_new->incoming_A = false; edge_new->incoming_B = false;
+                edge_new->next = e_table[c->node]->next;
+                e_table[c->node]->next = edge_new;
+                
+                Edge_T<T> * previous_node = e_table[c->node];
+                Edge_T<T> * killer_node = e_table[c->node]->next;
+                while(killer_node != NULL && killer_node->node != i){
+                    previous_node = killer_node;
+                    killer_node = killer_node->next;
+                }
+                if(killer_node != NULL) previous_node->next = killer_node->next; else previous_node->next = NULL;
+                
+            }
+            if(!incoming[2]){
+                if(last_added == NULL){
+                    e_table[n_nodes+i]->next = d;
+                }else{
+                    last_added->next = d;
+                }
+                last_added = d;
+                Edge_T<T> * edge_new = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+                edge_new->node = n_nodes+i;
+                edge_new->common = UNCOMMON;
+                edge_new->belongs_to_cycle = d->belongs_to_cycle;
+                edge_new->incoming_A = false; edge_new->incoming_B = false;
+                edge_new->next = e_table[d->node]->next;
+                e_table[d->node]->next = edge_new;
+                
+                Edge_T<T> * previous_node = e_table[d->node];
+                Edge_T<T> * killer_node = e_table[d->node]->next;
+                while(killer_node != NULL && killer_node->node != i){
+                    previous_node = killer_node;
+                    killer_node = killer_node->next;
+                }
+                if(killer_node != NULL) previous_node->next = killer_node->next; else previous_node->next = NULL;
+                
+            }
+            if(!incoming[3]){
+                if(last_added == NULL){
+                    e_table[n_nodes+i]->next = e;
+                }else{
+                    last_added->next = e;
+                }
+                last_added = e;
+                Edge_T<T> * edge_new = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+                edge_new->node = n_nodes+i;
+                edge_new->common = UNCOMMON;
+                edge_new->belongs_to_cycle = e->belongs_to_cycle;
+                edge_new->incoming_A = false; edge_new->incoming_B = false;
+                edge_new->next = e_table[e->node]->next;
+                e_table[e->node]->next = edge_new;
+                
+                Edge_T<T> * previous_node = e_table[e->node];
+                Edge_T<T> * killer_node = e_table[e->node]->next;
+                while(killer_node != NULL && killer_node->node != i){
+                    previous_node = killer_node;
+                    killer_node = killer_node->next;
+                }
+                if(killer_node != NULL) previous_node->next = killer_node->next; else previous_node->next = NULL;
+                
+            }
             
-            // Finally, add connections between a and a' 
-            
+            // Finally, add connections between a' and a
+            last_added->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
+            last_added->next->node = i;
+            last_added->next->common = COMMON;
+            last_added->next->next = NULL;
+            last_added->next->incoming_A = true; // Its going in for both cases
+            last_added->next->incoming_B = true;
+            last_added->next->connects_partition = -1;
+            last_added->next->out_node = NULL;
 
         }
     }
@@ -1312,6 +1446,7 @@ template void ordered_crossover<uint64_t>(Chromosome<uint64_t> * a, Chromosome<u
 template void ordered_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);
 template void fill_edge_table(Chromosome<uint64_t> * a, Edge_T<uint64_t> ** e_table, memory_pool * mp, uint64_t cycle_id);
 template void generate_degree(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template void add_ghost_vertices(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
 template void mark_entries_and_exists(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B);
 template Pair<Edge_T<uint64_t>> exit_from_entry(Edge_T<uint64_t> ** e_table, Edge_T<uint64_t> * entry, unsigned char CIRCUIT);
 template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, uint64_t * node_id);
