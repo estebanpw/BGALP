@@ -53,6 +53,8 @@ void print_edge_tables(uint64_t n_nodes, Edge_T<T> ** e_table){
                 if(et_ptr->common == COMMON) std::cout << "*";
                 if(et_ptr->incoming_A) std::cout<<"+a";
                 if(et_ptr->incoming_B) std::cout<<"+b";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_A) && et_ptr->incoming_A == false) std::cout<<"-a";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_B) && et_ptr->incoming_B == false) std::cout<<"-b";
                 std::cout << ", ";
                 et_ptr = et_ptr->next;
             }
@@ -75,6 +77,8 @@ void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
                 if(et_ptr->common == COMMON) std::cout << "*";
                 if(et_ptr->incoming_A) std::cout<<"+a";
                 if(et_ptr->incoming_B) std::cout<<"+b";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_A) && et_ptr->incoming_A == false) std::cout<<"-a";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_B) && et_ptr->incoming_B == false) std::cout<<"-b";
                 std::cout << ", ";
                 et_ptr = et_ptr->next;
             }
@@ -92,6 +96,8 @@ void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
                 if(et_ptr->common == COMMON) std::cout << "*";
                 if(et_ptr->incoming_A) std::cout<<"+a";
                 if(et_ptr->incoming_B) std::cout<<"+b";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_A) && et_ptr->incoming_A == false) std::cout<<"-a";
+                if((et_ptr->common == COMMON || et_ptr->belongs_to_cycle == CIRCUIT_B) && et_ptr->incoming_B == false) std::cout<<"-b";
                 std::cout << ", ";
                 et_ptr = et_ptr->next;
             }

@@ -544,7 +544,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
             }
 
             // Add connections between a and a'
-            if(last_added == NULL){ std::cout<< "With " << i << "\n";  terror("Its impossible");}
+            if(last_added == NULL){ std::cout<< "With " << i << " impossible\n"; terror("Impossible"); }
             last_added->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
             last_added->next->node = n_nodes+i;
             last_added->next->common = COMMON;
@@ -567,6 +567,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
                 edge_new->common = UNCOMMON;
                 edge_new->belongs_to_cycle = b->belongs_to_cycle;
                 edge_new->incoming_A = false; edge_new->incoming_B = false;
+                if(b->belongs_to_cycle == CIRCUIT_A) edge_new->incoming_A = true; else edge_new->incoming_B = true;
                 edge_new->next = e_table[b->node]->next;
                 e_table[b->node]->next = edge_new;
                 
@@ -591,6 +592,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
                 edge_new->common = UNCOMMON;
                 edge_new->belongs_to_cycle = c->belongs_to_cycle;
                 edge_new->incoming_A = false; edge_new->incoming_B = false;
+                if(c->belongs_to_cycle == CIRCUIT_A) edge_new->incoming_A = true; else edge_new->incoming_B = true;
                 edge_new->next = e_table[c->node]->next;
                 e_table[c->node]->next = edge_new;
                 
@@ -615,6 +617,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
                 edge_new->common = UNCOMMON;
                 edge_new->belongs_to_cycle = d->belongs_to_cycle;
                 edge_new->incoming_A = false; edge_new->incoming_B = false;
+                if(d->belongs_to_cycle == CIRCUIT_A) edge_new->incoming_A = true; else edge_new->incoming_B = true;
                 edge_new->next = e_table[d->node]->next;
                 e_table[d->node]->next = edge_new;
                 
@@ -639,6 +642,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
                 edge_new->common = UNCOMMON;
                 edge_new->belongs_to_cycle = e->belongs_to_cycle;
                 edge_new->incoming_A = false; edge_new->incoming_B = false;
+                if(e->belongs_to_cycle == CIRCUIT_A) edge_new->incoming_A = true; else edge_new->incoming_B = true;
                 edge_new->next = e_table[e->node]->next;
                 e_table[e->node]->next = edge_new;
                 
@@ -661,6 +665,12 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
             last_added->next->incoming_B = true;
             last_added->next->connects_partition = -1;
             last_added->next->out_node = NULL;
+
+            /*
+            std::cout<< "In " << i << "\n";
+            print_edge_tables_ghosted(n_nodes, e_table);
+            */
+
 
         }
     }

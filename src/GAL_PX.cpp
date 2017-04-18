@@ -199,7 +199,7 @@ int main(int argc, char **av) {
             // Restart memory pool, FIFO queue and Edge table
             mp->full_reset();
             while(!FIFO_queue.empty()) FIFO_queue.pop();
-            memset(e_table, 0x0, n_alleles*sizeof(Edge_T<uint64_t> *)); // Contents are handled by the pool
+            memset(e_table, 0x0, 2*n_alleles*sizeof(Edge_T<uint64_t> *)); // Contents are handled by the pool
 
             // Fill edge table for two random solutions
             fill_edge_table(&ind[i], e_table, mp, CIRCUIT_A);
