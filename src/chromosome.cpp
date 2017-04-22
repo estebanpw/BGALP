@@ -113,7 +113,7 @@ Chromo_TSP<T>::Chromo_TSP(uint64_t alleles, Position p, INITIALIZER init_type, s
     this->length = alleles;
     this->fitness = LDBL_MAX;
     this->position = p;
-    uint64_t seed = 0; // Do not fix
+    uint64_t seed; // Do not fix
     for(uint64_t i=0;i<alleles;i++){ this->chromosome[i] = i; }
     random_shuffle_templated(this->length, this->chromosome, seed, g, u_d);
     #ifdef VERBOSE

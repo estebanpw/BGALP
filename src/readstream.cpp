@@ -78,6 +78,7 @@ void reading_function_TSP(FILE * input, void * type_structure){
 
             // ATT 
             
+            
             xd = (int64_t)aux[i] - (int64_t)aux[j];
             yd = (int64_t)aux2[i] - (int64_t)aux2[j];
             rij = sqrtl( (xd*xd + yd*yd) / 10.0);

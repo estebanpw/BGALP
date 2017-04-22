@@ -27,10 +27,16 @@ template <class T>
 void mark_entries_and_exists(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B);
 
 template <class T>
+void mark_entries_and_exists_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B);
+
+template <class T>
 Pair<Edge_T<T>> exit_from_entry(Edge_T<T> ** e_table, Edge_T<T> * entry, unsigned char CIRCUIT);
 
 template <class T>
 bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id);
+
+template <class T>
+bool get_highest_node_unpartitioned_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id);
 
 template <class T>
 void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<T> ** e_table, std::queue<T> * FIFO_queue);
@@ -60,7 +66,13 @@ template <class T>
 void generate_partitions(PXTable<T> * px_table, Edge_T<T> ** e_table, uint64_t n_nodes, memory_pool * mp);
 
 template <class T>
+void shorten_common_tours_ghosted(Edge_T<T> ** e_table, uint64_t n_nodes);
+
+template <class T>
 T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table);
+
+template <class T>
+long double evaluate_partition_subtours_multiple_ghosted(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table);
 
 template <class T>
 T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> * end, Chromosome<T> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<T> ** e_table);

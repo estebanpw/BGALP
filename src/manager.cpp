@@ -129,11 +129,13 @@ void Manager<T>::run(uint64_t n_itera){
                 this->select_tournament(this->population[j], this->population[j], &this->pair[j]);
             }while(this->pair[j]._e1 == replacement || this->pair[j]._e2 == replacement);
 
+            /*
             #ifdef VERBOSE
             // Some info
             fprintf(stdout, "Mated:\n"); this->pair[j]._e1->print_chromosome();
             fprintf(stdout, "with:\n"); this->pair[j]._e2->print_chromosome();
             #endif
+            */
 
             // Crossover function here
             this->crossover_function(this->pair[j]._e1, this->pair[j]._e2, replacement, this);
@@ -143,11 +145,13 @@ void Manager<T>::run(uint64_t n_itera){
 
             replacement->compute_fitness(this->solution_info);
             
+            /*
             #ifdef VERBOSE
             //printf("looking for %" PRId64"\n", ((Sol_subsetsum *)this->solution_info)->c);
             fprintf(stdout, "Results in:\n"); replacement->print_chromosome();
             //getchar();
             #endif
+            */
 
             // The worst individual is always replaced
             this->population[j]->replace_worst(replacement);

@@ -119,6 +119,19 @@ uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<T> ** e_table){
 }
 
 template <class T>
+uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
+    int64_t high = -1;
+    for(uint64_t i=0;i<2*n_nodes;i++){
+        if(e_table[i] != NULL){
+            if(high < e_table[i]->partition) high = e_table[i]->partition;
+        }
+        
+    }
+    if(high == -1) return 0;
+    return (uint64_t) high;
+}
+
+template <class T>
 bool find_in_vector(std::vector<T> * v, T key){
     for(typename std::vector<T>::iterator it = v->begin() ; it != v->end(); ++it){
         if(*it == key) return true;
@@ -134,3 +147,4 @@ template void print_edge_tables(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
 template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);

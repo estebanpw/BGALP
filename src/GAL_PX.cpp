@@ -102,8 +102,11 @@ int main(int argc, char **av) {
     // Put the manager to run
     manager->run(n_itera);
 
+    #ifdef VERBOSE
     std::cout << "Best individual fitness:" << *manager->get_best_individual()->get_fitness() << std::endl;
+    
     manager->get_best_individual()->print_chromosome();
+    #endif
     //getchar();
 
     // Get k best solutions
@@ -126,15 +129,17 @@ int main(int argc, char **av) {
     two_opt_args args[random_sols];
     pthread_t threads[random_sols];
     
+    #ifdef VERBOSE
     std::cout << "Random solutions: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
         ind[i].print_chromosome();
     }
+    #endif
     //getchar();
     
     //uint64_t combinations = ((random_sols)*(random_sols-1))/2;
     // Local search 
-    std::cout << "Creating offsprings: " << std::endl;
+    
     Chromo_TSP<uint64_t> * locally_optimals = (Chromo_TSP<uint64_t> *) std::malloc(random_sols*sizeof(Chromo_TSP<uint64_t>));
     if(locally_optimals == NULL) throw "Could not allocate locally optimal individuals";
     for(uint64_t i=0;i<random_sols;i++){
@@ -155,11 +160,15 @@ int main(int argc, char **av) {
 
     
     // Run 2-opt 
+    #ifdef VERBOSE
     std::cout << "Running 2-opt: \n\t";
+    #endif
     for(uint64_t i=0;i<random_sols;i++){
         //run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
         pthread_create(&threads[i], NULL, run_pthreads_two_opt, (void *) (&args[i]));
+        #ifdef VERBOSE
         std::cout << i << std::endl;
+        #endif
     }
 
     for(uint64_t i=0;i<random_sols;i++){
@@ -194,6 +203,9 @@ int main(int argc, char **av) {
 
     // For all possible combinations 
     
+    std::cout << "N\tPart(s)\tP1\tP2\tO\n";
+    uint64_t recombinations = 0;
+
     for(uint64_t i=0;i<random_sols;i++){
         for(uint64_t j=i+1;j<random_sols;j++){
             // Restart memory pool, FIFO queue and Edge table
@@ -208,15 +220,20 @@ int main(int argc, char **av) {
             // Calculate degree
             generate_degree(n_alleles, e_table);
 
-            print_edge_tables(n_alleles, e_table);
+            #ifdef VERBOSE
+            //print_edge_tables(n_alleles, e_table);
+            #endif
 
             // Insert ghost vertices
             add_ghost_vertices(n_alleles, e_table, mp);
 
-            print_edge_tables_ghosted(n_alleles, e_table);
-            getchar();
 
-            /*
+            #ifdef VERBOSE
+            //print_edge_tables_ghosted(n_alleles, e_table);
+            //getchar();
+            #endif
+
+            
 
 
             // Locate partitions (attempt to find only two parts.)
@@ -224,7 +241,8 @@ int main(int argc, char **av) {
             bool keep_partitioning = true;
             do{
                 
-                keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
+                keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
+                //keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
                 if(keep_partitioning){
                     find_connected_components(node_id, current_label, e_table, &FIFO_queue);
                     current_label++;
@@ -232,56 +250,119 @@ int main(int argc, char **av) {
             }while(keep_partitioning);
             
             // Get number of partitions 
-            uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
-            std::cout << "Number of partitions: " << n_parts << std::endl;
+            //uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
+            uint64_t n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
 
-            print_edge_tables(n_alleles, e_table);
+            //std::cout << "Number of partitions: " << n_parts << std::endl;
+            std::cout << recombinations++ << "\t" << n_parts << "\t";
+
+            #ifdef VERBOSE
+            print_edge_tables_ghosted(n_alleles, e_table);
+            #endif
+            
 
             // Reset partition table 
-            memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
+            //memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
 
             // Generate surrogate edges for partitions 
-            generate_partitions(part_table, e_table, n_alleles, mp);
+            
+            shorten_common_tours_ghosted(e_table, n_alleles);
+
+            
 
             // Mark entries and exists to tell if a multipartitioning approach is feasible
             // Empty queues first 
             while(!entries_A.empty()) entries_A.pop(); while(!entries_B.empty()) entries_B.pop();
             while(!exits_A.empty()) exits_A.pop(); while(!exits_B.empty()) exits_B.pop();
 
-            mark_entries_and_exists(n_alleles, e_table, &entries_A, &entries_B, &exits_A, &exits_B);
             
+
+            mark_entries_and_exists_ghosted(n_alleles, e_table, &entries_A, &entries_B, &exits_A, &exits_B);
+
+            
+            #ifdef VERBOSE
             std::cout << "================================================================" << std::endl;
             std::cout << "Combining " << std::endl;
             ind[i].print_chromosome();
             std::cout << " with: " << std::endl;
             ind[j].print_chromosome();
+            #endif
 
             
+
             // Verify that all entries conduct to the same exit 
             Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, &entries_A, &entries_B, &exits_A, &exits_B, mp, e_table);
 
+            
+
+            bool A_is_better = true;
+            long double best_offspring;
+            if(*ind[i].get_fitness() < *ind[j].get_fitness()){
+                best_offspring = *ind[i].get_fitness();
+                A_is_better = true;
+            }else{
+                best_offspring = *ind[j].get_fitness();
+                A_is_better = false;
+            }
+            
+            #ifdef VERBOSE
             std::cout << "Summary of partitioning\n";
+            #endif
             for(uint64_t w=0;w<n_parts;w++){
                 if(feasibility_partitioning.feasible._e1[w] != NULL){
-                    uint64_t score_part_A = 0;
-                    uint64_t score_part_B = 0;
+                    long double score_part_A = 0.0;
+                    long double score_part_B = 0.0;
+                    #ifdef VERBOSE
                     std::cout << "Partition " << w << " has " << feasibility_partitioning.n_entries[w] << " entries and exits: \n";
+                    #endif
                     for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
+                        #ifdef VERBOSE
                         std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        score_part_A += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
+                        #endif
+                        //score_part_A += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
+                        score_part_A = (long double) evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
+                        
+                        #ifdef VERBOSE
+                        std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
+                        #endif
+                        //score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
+                        score_part_B = (long double) evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
+
+                        #ifdef VERBOSE
+                        std::cout << "Scores: " << score_part_A << " :: " << score_part_B << "\n";
+                        #endif
+
+                        if(A_is_better){
+                            best_offspring -= score_part_A; // Always subtract the A score because we come from A and add the best
+                        }else{
+                            best_offspring -= score_part_B; // Always subtract the B score because we come from B and add the best
+                        }
+                        
+
+                        // Now just add the minimum
+                        best_offspring += min(score_part_A, score_part_B);
                     }
+                    /*
                     for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
                         std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
+                        //score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
+                        score_part_B += evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
                     }
 
                     std::cout << "Scores:\n(A): " << score_part_A << "\n(B): " << score_part_B << std::endl;
+                    */
                 }
             }
+            
+            //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
+            std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring;
+            if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()) std::cout << "\t*\n"; else std::cout << "\n";
+            #ifdef VERBOSE
             getchar();
+            #endif
             
             continue;
-            */
+            
 
 
 
