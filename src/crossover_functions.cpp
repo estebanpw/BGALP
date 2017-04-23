@@ -356,7 +356,7 @@ int compare_Edges_T(const void * a, const void * b){
 }
 
 template <class T>
-Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table){
+Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes){
     
     std::queue<Edge_T<T> *> aux_queue;
     Feasible<T> feasible; 
@@ -447,6 +447,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
 
     // Go through all 
     uint64_t j;
+    long double score;
     for(uint64_t i=0;i<n_partitions;i++){
         // If different number of entries, deactivate partition
         if(feasible.n_entries[i] != n_nodes_part_B[i]){ parts_A[i] = NULL; parts_B[i] = NULL; continue; }
@@ -460,7 +461,9 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
             
             uint64_t length_A, length_B;
 
-            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A);
+            score = 0;
+            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A, tsp, &score, n_nodes);
+            parts_A[i][j].score = score;
             
             #ifdef VERBOSE
             std::cout << "\n";
@@ -477,7 +480,9 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
             std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << " ends in ";
             #endif
             
-            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B);
+            score = 0;
+            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B, tsp, &score, n_nodes);
+            parts_B[i][j].score = score;
 
             #ifdef VERBOSE
             std::cout << "\n";
@@ -514,16 +519,20 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                     // They are reversed 
 
                     // USE ONLY FOR SYMMETRIC TSP 
-                    /*
+                    
                     parts_B[i][j].reverse = true;
+                    #ifdef VERBOSE
                     std::cout << "reversed to: " << pB._e1->node << "; " << pB._e2->node << "\n"; 
-                    */
+                    #endif
+                    
                     // FOR ASYMMETRIC
                     // Since they are reversed, destroy 
+                    /*
                     #ifdef VERBOSE
                     std::cout << "Destroying because of asymmetry" << std::endl;
                     #endif
                     parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                    */
 
                 }
                 
@@ -925,7 +934,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
 }
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length){
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes){
 
     Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
     Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
@@ -933,6 +942,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
     // Extend in both directions until one node with degree > 2 is found
     uint64_t master_node = i;
     int64_t start_part = e_table[i]->partition;
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) sol;
     route_start = e_table[i];
     *length = 0;
     route_end = NULL;
@@ -962,6 +972,8 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
                 master_node = ptr->node;
                 route_end = e_table[ptr->node];
 
+                *score += (long double) tsp->dist[(last_replaced->node >= n_nodes) ? (last_replaced->node - n_nodes) : (last_replaced->node)][(ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node)];
+
                 if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
                 if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) goto finish; 
 
@@ -969,6 +981,9 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
                 // Save this node as last and look for more 
                 // Jump common tour
                 
+                //std::cout << "SSSSSSSSSSSs " << last_replaced->node << "\t" << ptr->node << std::endl;
+                
+
                 (*length)++;
                 ptr = e_table[ptr->node]->next;
                 
@@ -1329,7 +1344,7 @@ T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool 
 template <class T>
 long double evaluate_partition_subtours_multiple_ghosted(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table){
     long double score = 0;
-    uint64_t swath_start_P1 = 0;
+    uint64_t swath_start_P1 = 0, swath_end_P1 = 0;
     uint64_t i;
     uint64_t n_nodes_unghosted = c->get_length();
     uint64_t n_nodes = n_nodes_unghosted; //2*c->get_length();
@@ -1337,8 +1352,8 @@ long double evaluate_partition_subtours_multiple_ghosted(Edge_T<T> * start, Edge
 
     for(i=0;i<n_nodes_unghosted;i++){
         // Find first swath in P1 
-        if(reverse == false && (*c->get_allele(i) == start->node || n_nodes_unghosted+(*c->get_allele(i)) == start->node)) swath_start_P1 = i; 
-        if(reverse == true && (*c->get_allele(i) == start->node || n_nodes_unghosted+(*c->get_allele(i)) == start->node)) swath_start_P1 = i;
+        if( (*c->get_allele(i) == start->node || n_nodes_unghosted+(*c->get_allele(i)) == start->node)) swath_start_P1 = i; 
+        if( (*c->get_allele(i) == end->node || n_nodes_unghosted+(*c->get_allele(i)) == end->node)) swath_end_P1 = i;
     }
 
     i = swath_start_P1;
@@ -1376,34 +1391,125 @@ long double evaluate_partition_subtours_multiple_ghosted(Edge_T<T> * start, Edge
         #endif
         do{
 
-            //if(i==0) i = n_nodes-1; else i--;
+
+
+            /*
+            if(swath_start_P1 < swath_end_P1){
+                if(i==0) i = n_nodes-1; else i--;
+                if(i == 0) score += (long double) tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
+                else score += (long double) tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
+                #ifdef VERBOSE
+                std::cout << *c->get_allele(i) << ",";
+                #endif
+
+            }else{
+                i = (i + 1) % n_nodes;
+                if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
+                else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
+                #ifdef VERBOSE
+                std::cout << *c->get_allele(i) << ",";
+                #endif
+                
+            }
+
+            */
+            
+            
+            //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+            // Compute here
+            
+            //uint64_t prescore = score;
+            /*
+            if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
+            else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
+            #ifdef VERBOSE
+            std::cout << *c->get_allele(i) << ",";
+            #endif
+            */
+            
+            //i = (i + 1) % n_nodes;
             
             //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
 
             // Compute here
             /*
-            uint64_t prescore = score;
-            if(i == n_nodes-1) score += tsp->dist[*c->get_allele(0)][*c->get_allele(n_nodes-1)];
-            else score += tsp->dist[*c->get_allele(i+1)][*c->get_allele(i)];
-            std::cout << *c->get_allele(i) << ",";
-            */
-            i = (i + 1) % n_nodes;
-            
-            //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
-
-            // Compute here
-            
             if(i == 0) score += (long double) tsp->dist[*c->get_allele(n_nodes-1)][*c->get_allele(i)];
             else score += (long double) tsp->dist[*c->get_allele(i-1)][*c->get_allele(i)];
             #ifdef VERBOSE
             std::cout << *c->get_allele(i) << ",";
             #endif
+            */
 
         //}while(e_table[*c->get_allele(i)]->partition == partition1 ||  e_table[*c->get_allele(i)]->partition == -1);
         //}while(e_table[*c->get_allele(i)]->partition != partition2);
         //}while(*c->get_allele(i) != end->left->node && *c->get_allele(i) != end->right->node);
         }while(*c->get_allele(i) != start->node && n_nodes_unghosted+(*c->get_allele(i)) != end->node);
     }
+
+    
+    #ifdef VERBOSE
+    std::cout << std::endl;
+    #endif
+    return score;
+} 
+
+template <class T>
+long double evaluate_partition_subtours_multiple_ghosted_final(Edge_T<T> * start, Chromosome<T> * a, Chromosome<T> * b, void * solution_info, Edge_T<T> ** e_table, unsigned char * chosen_entries){
+    long double score = 0;
+    uint64_t swath_start_P1 = 0;
+    uint64_t i;
+    uint64_t n_nodes_unghosted = a->get_length();
+    uint64_t n_nodes = n_nodes_unghosted; //2*c->get_length();
+    Sol_TSP_matrix * tsp = (Sol_TSP_matrix * ) solution_info;
+
+    for(i=0;i<n_nodes_unghosted;i++){
+        // Find first swath in P1 
+        if((*a->get_allele(i) == start->node || n_nodes_unghosted+(*a->get_allele(i)) == start->node)) swath_start_P1 = i; 
+    }
+
+    i = swath_start_P1;
+
+    #ifdef VERBOSE
+    std::cout << " adding: (" << i << ")";
+    #endif
+
+    bool copying_from_A = true;
+
+    
+    #ifdef VERBOSE
+    std::cout << " direct ";
+    #endif
+    do{
+
+        
+        i = (i + 1) % n_nodes;
+        
+        //std::cout << *c->get_allele(i) << "(" << e_table[*c->get_allele(i)]->partition << "), ";
+
+        // Compute here
+        if(chosen_entries[*a->get_allele(i)] == CIRCUIT_A){
+            copying_from_A = true;
+        }
+        if(chosen_entries[*b->get_allele(i)] == CIRCUIT_B){
+            copying_from_A = false;
+        }
+
+        if(copying_from_A){
+            if(i == 0) score += (long double) tsp->dist[*a->get_allele(n_nodes-1)][*a->get_allele(i)];
+            else score += (long double) tsp->dist[*a->get_allele(i-1)][*a->get_allele(i)];
+        }else{
+            if(i == 0) score += (long double) tsp->dist[*b->get_allele(n_nodes-1)][*b->get_allele(i)];
+            else score += (long double) tsp->dist[*b->get_allele(i-1)][*b->get_allele(i)];
+        }
+        
+    
+        #ifdef VERBOSE
+        std::cout << *a->get_allele(i) << ",";
+        #endif
+
+    
+    }while(i != swath_start_P1);
 
     
     #ifdef VERBOSE
@@ -1699,14 +1805,15 @@ template bool get_highest_node_unpartitioned_ghosted(uint64_t n_nodes, Edge_T<ui
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
-template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table);
+template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
-template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length);
+template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
 template void shorten_common_tours_ghosted(Edge_T<uint64_t> ** e_table, uint64_t n_nodes);
 template uint64_t evaluate_partition_subtours_multiple(Edge_T<uint64_t> * start, Edge_T<uint64_t> * end, bool reverse, Chromosome<uint64_t> * c, void * solution_info, Edge_T<uint64_t> ** e_table);
 template long double evaluate_partition_subtours_multiple_ghosted(Edge_T<uint64_t> * start, Edge_T<uint64_t> * end, bool reverse, Chromosome<uint64_t> * c, void * solution_info, Edge_T<uint64_t> ** e_table);
+template long double evaluate_partition_subtours_multiple_ghosted_final(Edge_T<uint64_t> * start, Chromosome<uint64_t> * a, Chromosome<uint64_t> * b, void * solution_info, Edge_T<uint64_t> ** e_table, unsigned char * chosen_entries);
 template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
 template void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1);

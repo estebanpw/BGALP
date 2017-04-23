@@ -48,10 +48,10 @@ template <class T>
 Pair<Edge_T<T>> abstract_replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i);
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length);
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes);
 
 template <class T>
-Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table);
+Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes);
 
 template <class T>
 void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp);
@@ -73,6 +73,9 @@ T evaluate_partition_subtours_multiple(Edge_T<T> * start, Edge_T<T> * end, bool 
 
 template <class T>
 long double evaluate_partition_subtours_multiple_ghosted(Edge_T<T> * start, Edge_T<T> * end, bool reverse, Chromosome<T> * c, void * solution_info, Edge_T<T> ** e_table);
+
+template <class T>
+long double evaluate_partition_subtours_multiple_ghosted_final(Edge_T<T> * start, Chromosome<T> * a, Chromosome<T> * b, void * solution_info, Edge_T<T> ** e_table, unsigned char * chosen_entries);
 
 template <class T>
 T evaluate_partition_subtours(Surrogate_Edge_T<T> * start, Surrogate_Edge_T<T> * end, Chromosome<T> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<T> ** e_table);

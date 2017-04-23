@@ -123,6 +123,7 @@ struct feasible_partition{
     Edge_T<T> * entry;
     Edge_T<T> * exit;
     bool reverse;
+    long double score;
 };
 
 template <typename T>

@@ -73,7 +73,7 @@ void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
             std::cout << e_table[i]->partition << " -> (" << e_table[i]->degree << ") @" << i << ": ";
             et_ptr = e_table[i]->next;
             while(et_ptr != NULL){
-                std::cout << et_ptr->node;
+                if(et_ptr->node > n_nodes) std::cout << et_ptr->node - n_nodes << "'"; else std::cout << et_ptr->node;
                 if(et_ptr->common == COMMON) std::cout << "*";
                 if(et_ptr->incoming_A) std::cout<<"+a";
                 if(et_ptr->incoming_B) std::cout<<"+b";
@@ -92,7 +92,7 @@ void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table){
             std::cout << e_table[i]->partition << "$$ -> (" << e_table[i]->degree << ") @" << i-n_nodes << ": ";
             et_ptr = e_table[i]->next;
             while(et_ptr != NULL){
-                std::cout << et_ptr->node;
+                if(et_ptr->node > n_nodes) std::cout << et_ptr->node - n_nodes << "'"; else std::cout << et_ptr->node;
                 if(et_ptr->common == COMMON) std::cout << "*";
                 if(et_ptr->incoming_A) std::cout<<"+a";
                 if(et_ptr->incoming_B) std::cout<<"+b";
