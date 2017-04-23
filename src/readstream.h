@@ -25,4 +25,5 @@ class Readstream{
 };
 
 void reading_function_TSP(FILE * input, void * type_structure); // For symmetric TSP 
+void reading_function_ATSP(FILE * input, void * type_structure); // For asymmetric TSP 
 void reading_function_LB_reads(FILE * input, void * type_structure); // Load balancing of metagenomic reads

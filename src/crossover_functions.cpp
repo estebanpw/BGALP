@@ -450,8 +450,12 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
     for(uint64_t i=0;i<n_partitions;i++){
         // If different number of entries, deactivate partition
         if(feasible.n_entries[i] != n_nodes_part_B[i]){ parts_A[i] = NULL; parts_B[i] = NULL; continue; }
-        
+        #ifdef VERBOSE
+        std::cout << "at this level: " << feasible.n_entries[i]  << "\n";
+        #endif
         for(j = 0; j<feasible.n_entries[i]; j++){
+
+            Pair<Edge_T<T>> pA, pB;
 
             #ifdef VERBOSE
             std::cout << i << " - " << j << std::endl;
@@ -460,7 +464,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
             
             uint64_t length_A, length_B;
 
-            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A);
+            pA = abstract_replace_surrogate_by_one_circuited(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A);
             
             #ifdef VERBOSE
             std::cout << "\n";
@@ -470,14 +474,15 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                 #ifdef VERBOSE
                 std::cout << "Make null (1)\n"; 
                 #endif
-                parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                //parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                parts_A[i][j].active = false; parts_B[i][j].active = false; continue;
             }
             
             #ifdef VERBOSE
             std::cout << "(B) " << parts_B[i][j].entry->node << ", " << parts_B[i][j].entry->partition << " ends in ";
             #endif
             
-            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B);
+            pB = abstract_replace_surrogate_by_one_circuited(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B);
 
             #ifdef VERBOSE
             std::cout << "\n";
@@ -487,14 +492,16 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                 #ifdef VERBOSE
                 std::cout << "Make null (2)\n";
                 #endif
-                parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                //parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                parts_A[i][j].active = false; parts_B[i][j].active = false; continue;
             }
             
             if(length_A != length_B){ 
                 #ifdef VERBOSE
                 std::cout << "the lengths differ " << length_A <<" "  <<length_B << "\n"; 
                 #endif
-                parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                //parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                parts_A[i][j].active = false; parts_B[i][j].active = false; continue;
             }
 
             // If exiting vertices are different this partition is not feasible
@@ -503,7 +510,8 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                 #ifdef VERBOSE
                 std::cout << "Destroying" << std::endl;
                 #endif
-                parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                //parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                parts_A[i][j].active = false; parts_B[i][j].active = false; continue;
             }else{
                 
                 parts_A[i][j].exit = pA._e2;
@@ -523,7 +531,8 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                     #ifdef VERBOSE
                     std::cout << "Destroying because of asymmetry" << std::endl;
                     #endif
-                    parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                    //parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                    parts_A[i][j].active = false; parts_B[i][j].active = false; continue;
 
                 }
                 

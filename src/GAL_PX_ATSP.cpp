@@ -54,7 +54,7 @@ int main(int argc, char **av) {
     mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
     // Readstream to load data 
-    Readstream * rs = new Readstream(tsp_lib, &reading_function_TSP, (void *) &tsp);
+    Readstream * rs = new Readstream(tsp_lib, &reading_function_ATSP, (void *) &tsp);
     rs->read();
 
     // Number of alleles per individual
@@ -163,7 +163,7 @@ int main(int argc, char **av) {
     #ifdef VERBOSE
     std::cout << "Running 2-opt: \n\t";
     #endif
-    for(uint64_t i=0;i<random_sols;i++){
+    for(uint64_t i=0;i<random_sols/2;i++){
         //run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
         pthread_create(&threads[i], NULL, run_pthreads_two_opt, (void *) (&args[i]));
         #ifdef VERBOSE
@@ -171,15 +171,27 @@ int main(int argc, char **av) {
         #endif
     }
 
-    for(uint64_t i=0;i<random_sols;i++){
+    for(uint64_t i=0;i<random_sols/2;i++){
         pthread_join(threads[i], NULL);
     }
-    /*
+
+    for(uint64_t i=random_sols/2;i<random_sols;i++){
+        //run_2opt(&ind[i], &locally_optimals[i], (void *) &tsp);
+        pthread_create(&threads[i], NULL, run_pthreads_two_opt, (void *) (&args[i]));
+        #ifdef VERBOSE
+        std::cout << i << std::endl;
+        #endif
+    }
+
+    for(uint64_t i=random_sols/2;i<random_sols;i++){
+        pthread_join(threads[i], NULL);
+    }
+    
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
         ind[i].print_chromosome();
     }
-    */
+    
     
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));

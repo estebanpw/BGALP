@@ -96,6 +96,90 @@ void reading_function_TSP(FILE * input, void * type_structure){
     std::free(aux2);
 }
 
+void reading_function_ATSP(FILE * input, void * type_structure){
+    Sol_TSP_matrix * tsp_mat = (Sol_TSP_matrix *) type_structure;
+
+    uint64_t total = 0;
+    uint64_t id;
+    long double x, y;
+    
+    // Count lines
+    char buffer[MAX_LINE];
+    int dimension;
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+
+        if(1 == sscanf(buffer, "DIMENSION: %d", &dimension)){
+            if(dimension < 0) terror("Wrong number of nodes");
+            total = (uint64_t) dimension;
+        }
+
+    }
+    // Go to start
+    rewind(input);
+
+    // Allocate space
+    
+    tsp_mat->n = total;
+    
+    tsp_mat->dist = (long double **) std::malloc(total * sizeof(long double *));
+    if(tsp_mat->dist == NULL) throw "Could not allocate TSP lib nodes (1)";
+    for(uint64_t i=0;i<total;i++){
+        tsp_mat->dist[i] = (long double *) malloc(total * sizeof(long double));
+        if(tsp_mat->dist[i] == NULL) throw "Could not allocate TSP lib nodes (2)";
+    }
+
+    // Add nodes
+    id = 0;
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+
+        if(strncmp(buffer, "EDGE_WEIGHT_SECTION", 19) == 0){
+
+            break;
+        }
+        
+    }
+    
+
+    uint64_t i_node = 0, j_node = 0;
+    char transform[MAX_LINE]; transform[0] = '\0';
+    uint64_t idx = 0;
+    char c;
+    c = fgetc(input);
+    while(!feof(input) && i_node < total){
+
+        
+        while(c == ' ' || c == '\n') c = fgetc(input);
+
+        while(c != ' ' && c != '\n'){
+            transform[idx++] = c;
+            c = fgetc(input);
+        }
+        
+        transform[idx] = '\0';
+        //printf(" a number %d at %d %d \n", atoi(transform), (int) i_node, (int) j_node);
+        tsp_mat->dist[i_node][j_node] = (long double) atoi(transform);
+        j_node++;
+        if(j_node == (total)){
+            j_node = 0;
+            i_node++;
+            
+        }
+        //getchar();
+        idx = 0;
+    }
+    /*
+    for(uint64_t i=0;i<total;i++){
+        for(uint64_t j=0;j<total;j++){
+            printf("%10d ", (int) tsp_mat->dist[i][j]);
+
+        }
+        printf("\n");
+    }
+
+    exit(-1);
+    */
+}
+
 
 void reading_function_LB_reads(FILE * input, void * type_structure){
     Sol_LB_reads * LB_mat = (Sol_LB_reads *) type_structure;
