@@ -125,6 +125,19 @@ int main(int argc, char **av) {
     // Get k random solutions
     uint64_t random_sols = 10;
 
+    std::cout << "Rand 1: " << std::endl;
+    ind[0].print_chromosome();
+
+
+    build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+    two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[0], 30);
+
+    std::cout << "After OPT: " << std::endl;
+    ind[0].print_chromosome();
+
+
+    exit(-1);
+
     // Pthreads 
     two_opt_args args[random_sols];
     pthread_t threads[random_sols];
@@ -178,7 +191,7 @@ int main(int argc, char **av) {
     #ifdef VERBOSE
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
-        ind[i].print_chromosome();
+        std::cout << *ind[i].get_fitness() << "\n";
     }
     std::cout << "Out optimal " << std::endl;
     #endif

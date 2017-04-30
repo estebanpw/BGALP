@@ -62,10 +62,17 @@ struct Sol_subsetsum{
     int64_t c; //The value to reach
 };
 
+struct neighbour_type{
+    uint64_t id;
+    long double distance;
+};
+
 // Structs for TSP
 struct Sol_TSP_matrix{
     long double ** dist;
     uint64_t n;
+    neighbour_type ** neighbours; // For 2opt
+    bool * DLB; // Dont Look Bits array for 2opt
 };
 
 // Struct for load balancing metagenomic reads 

@@ -74,17 +74,17 @@ void reading_function_TSP(FILE * input, void * type_structure){
             // TODO parameterize this so that you dont have to re-compile
 
             // EUC-2D
-            tsp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
+            //tsp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
 
             // ATT 
             
-            /*
+            
             xd = (int64_t)aux[i] - (int64_t)aux[j];
             yd = (int64_t)aux2[i] - (int64_t)aux2[j];
             rij = sqrtl( (xd*xd + yd*yd) / 10.0);
             tij = (long double) (round(rij));
             if(tij < rij) tsp_mat->dist[i][j] = tij+1; else tsp_mat->dist[i][j] = tij;
-            */
+            
             
             //std::cout << "Between (" << aux[i] << ", " << aux[j]  << ") and (" << aux2[i] << ", " << aux2[j]  << ") yields " << tsp_mat->dist[i][j] << std::endl;
             //std::cout << tsp_mat->dist[i][j] << " ";
