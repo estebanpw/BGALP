@@ -52,7 +52,7 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
                     //improve = 0;
 
                     // deactivate this for less complexity
-                    //goto start_again;
+                    goto start_again;
                 }
             }
         }
@@ -108,7 +108,7 @@ struct Sol_TSP_matrix{
 bool improve_city_2_opt(Chromosome<uint64_t> * tour, uint64_t base_pos, void * sol_tsp, uint64_t n_nodes, uint64_t n_neighbours, uint64_t * tour_positions){
     Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) sol_tsp;
     bool improved = false;
-    uint64_t pos_Y2, i, j, X1, X2, Y1, Y2; // Indexes and city numbers 
+    uint64_t i, j, X1, X2, Y1, Y2; // Indexes and city numbers 
     for(uint64_t dir=0; dir<2; dir++){ //0 is forward, 1 is backward
         if(dir == 0){
             i = base_pos;

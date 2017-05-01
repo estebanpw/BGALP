@@ -21,7 +21,6 @@ class Readstream{
     public:
     Readstream(const char * file, void (*reading_function)(FILE * input, void * type_structure), void * type_structure);
     void read();
-    ~Readstream();
 };
 
 void reading_function_TSP(FILE * input, void * type_structure); // For symmetric TSP 

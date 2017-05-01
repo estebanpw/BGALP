@@ -10,11 +10,9 @@ Readstream::Readstream(const char * file, void (*reading_function)(FILE * input,
 
 void Readstream::read(){
     this->reading_function(this->input, this->type_structure);
+    fclose(this->input);
 }
 
-Readstream::~Readstream(){
-    if(this->input != NULL) fclose(this->input);
-}
 
 void reading_function_TSP(FILE * input, void * type_structure){
     Sol_TSP_matrix * tsp_mat = (Sol_TSP_matrix *) type_structure;
@@ -60,11 +58,11 @@ void reading_function_TSP(FILE * input, void * type_structure){
             aux2[id-1] = y;
         }
     }
-    
+    /*
     int64_t xd, yd;
     long double rij;
     long double tij;
-    
+    */
     // Calculate distances
     for(uint64_t i=0;i<total;i++){
         for(uint64_t j=0;j<total;j++){
@@ -74,17 +72,17 @@ void reading_function_TSP(FILE * input, void * type_structure){
             // TODO parameterize this so that you dont have to re-compile
 
             // EUC-2D
-            //tsp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
+            tsp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
 
             // ATT 
             
-            
+            /*
             xd = (int64_t)aux[i] - (int64_t)aux[j];
             yd = (int64_t)aux2[i] - (int64_t)aux2[j];
             rij = sqrtl( (xd*xd + yd*yd) / 10.0);
             tij = (long double) (round(rij));
             if(tij < rij) tsp_mat->dist[i][j] = tij+1; else tsp_mat->dist[i][j] = tij;
-            
+            */
             
             //std::cout << "Between (" << aux[i] << ", " << aux[j]  << ") and (" << aux2[i] << ", " << aux2[j]  << ") yields " << tsp_mat->dist[i][j] << std::endl;
             //std::cout << tsp_mat->dist[i][j] << " ";

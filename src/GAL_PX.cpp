@@ -69,7 +69,6 @@ int main(int argc, char **av) {
     // Random numbers for the manager
     std::default_random_engine generator = std::default_random_engine(time(NULL));
     std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
-    std::uniform_int_distribution<uint64_t> u_d_indiv = std::uniform_int_distribution<uint64_t>(0, n_individuals-1);
 
     // Allocate chromosomes
     Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
@@ -124,35 +123,37 @@ int main(int argc, char **av) {
 
     // Get k random solutions
     uint64_t random_sols = 10;
+    uint64_t n_neighbours = 20;
 
-    std::cout << "Rand 1: " << std::endl;
-    ind[0].print_chromosome();
+    //build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+    //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[0], n_neighbours);
 
-
-    build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
-    two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[0], 30);
-
-    std::cout << "After OPT: " << std::endl;
-    ind[0].print_chromosome();
-
-
-    exit(-1);
 
     // Pthreads 
-    two_opt_args args[random_sols];
-    pthread_t threads[random_sols];
+    //two_opt_args args[random_sols];
+    //pthread_t threads[random_sols];
     
     #ifdef VERBOSE
     std::cout << "Random solutions: " << std::endl;
-    for(uint64_t i=0;i<random_sols;i++){
-        ind[i].print_chromosome();
-    }
     #endif
+    for(uint64_t i=0;i<random_sols;i++){
+        #ifdef VERBOSE
+        std::cout<< "F(1): " << *ind[i].get_fitness();
+        #endif
+        build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+        two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
+        #ifdef VERBOSE
+        std::cout<<"F(2): " << *ind[i].get_fitness() << "\n";
+        #endif
+    }
+    
     //getchar();
     
     //uint64_t combinations = ((random_sols)*(random_sols-1))/2;
     // Local search 
-    
+
+
+    /*    
     Chromo_TSP<uint64_t> * locally_optimals = (Chromo_TSP<uint64_t> *) std::malloc(random_sols*sizeof(Chromo_TSP<uint64_t>));
     if(locally_optimals == NULL) throw "Could not allocate locally optimal individuals";
     for(uint64_t i=0;i<random_sols;i++){
@@ -161,7 +162,7 @@ int main(int argc, char **av) {
         args[i].b = &locally_optimals[i];
         args[i].solution = &tsp;
     }
-    
+    */
     /*
     for(uint64_t i=0;i<random_sols;i++){
         for(uint64_t j=0;j<n_alleles;j++){
@@ -171,7 +172,7 @@ int main(int argc, char **av) {
     */
     
 
-    
+    /*
     // Run 2-opt 
     #ifdef VERBOSE
     std::cout << "Running 2-opt: \n\t";
@@ -188,6 +189,7 @@ int main(int argc, char **av) {
         pthread_join(threads[i], NULL);
     }
     
+    
     #ifdef VERBOSE
     std::cout << "Locally optimal: " << std::endl;
     for(uint64_t i=0;i<random_sols;i++){
@@ -195,44 +197,42 @@ int main(int argc, char **av) {
     }
     std::cout << "Out optimal " << std::endl;
     #endif
-    
+    */
+
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
     PXTable<uint64_t> * part_table = (PXTable<uint64_t> *) std::malloc(n_alleles * sizeof(PXTable<uint64_t>));
     if(part_table == NULL) throw "Could not allocate partition table";
     memory_pool * mp = new memory_pool(POOL_SIZE);
-    Chromo_TSP<uint64_t> * offspring_1 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    Chromo_TSP<uint64_t> * offspring_2 = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    Chromo_TSP<uint64_t> * after_px_2opt = new Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
-    std::queue<uint64_t> FIFO_queue;
+    
+    std::queue<uint64_t> * FIFO_queue = new std::queue<uint64_t>();
 
     // Queues for multipartitioning
-    std::queue<Edge_T<uint64_t> *> entries_A, entries_B, exits_A, exits_B;
-    
-
-    // To get best offspring 
-    uint64_t score_subtour_A, score_subtour_B;
-    uint64_t max_score_A, max_score_B;
-    int64_t the_other_partition;
+    std::queue<Edge_T<uint64_t> *> * entries_A, * entries_B, * exits_A, * exits_B;
+    entries_A = new std::queue<Edge_T<uint64_t> *>();
+    entries_B = new std::queue<Edge_T<uint64_t> *>();
+    exits_A = new std::queue<Edge_T<uint64_t> *>();
+    exits_B = new std::queue<Edge_T<uint64_t> *>();
 
     // For all possible combinations 
     
     std::cout << "N\tPart(s)\tP1\tP2\tO\n";
     uint64_t recombinations = 0;
-    unsigned char chosen_entries[n_alleles];
-    long double scores_A[n_alleles];
-    long double scores_B[n_alleles];
+    unsigned char * chosen_entries = (unsigned char *) std::malloc(2*n_alleles*sizeof(unsigned char));
+    long double * scores_A = (long double *) std::malloc(n_alleles * sizeof(long double));
+    long double * scores_B = (long double *) std::malloc(n_alleles * sizeof(long double));
+    if(chosen_entries == 0x0 || scores_A == 0x0 || scores_B == 0x0) throw "Could not allocate scores for A and B subtours";
 
     for(uint64_t i=0;i<random_sols;i++){
         for(uint64_t j=i+1;j<random_sols;j++){
             // Restart memory pool, FIFO queue and Edge table
             mp->full_reset();
-            while(!FIFO_queue.empty()) FIFO_queue.pop();
+            while(!FIFO_queue->empty()) FIFO_queue->pop();
             memset(e_table, 0x0, 2*n_alleles*sizeof(Edge_T<uint64_t> *)); // Contents are handled by the pool
-            memset(chosen_entries, (unsigned char) 2, n_alleles); // Just a value to indicate that it has not been selected
-            memset(scores_A, (long double) 0, n_alleles);
-            memset(scores_B, (long double) 0, n_alleles);
+            memset(&chosen_entries[0], (unsigned char) 2, 2*n_alleles); // Just a value to indicate that it has not been selected
+            memset(&scores_A[0], (long double) 0, n_alleles);
+            memset(&scores_B[0], (long double) 0, n_alleles);
 
             // Fill edge table for two random solutions
             fill_edge_table(&ind[i], e_table, mp, CIRCUIT_A);
@@ -265,7 +265,7 @@ int main(int argc, char **av) {
                 keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
                 //keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
                 if(keep_partitioning){
-                    find_connected_components(node_id, current_label, e_table, &FIFO_queue);
+                    find_connected_components(node_id, current_label, e_table, FIFO_queue);
                     current_label++;
                 }
             }while(keep_partitioning);
@@ -293,12 +293,12 @@ int main(int argc, char **av) {
 
             // Mark entries and exists to tell if a multipartitioning approach is feasible
             // Empty queues first 
-            while(!entries_A.empty()) entries_A.pop(); while(!entries_B.empty()) entries_B.pop();
-            while(!exits_A.empty()) exits_A.pop(); while(!exits_B.empty()) exits_B.pop();
+            while(!entries_A->empty()) entries_A->pop(); while(!entries_B->empty()) entries_B->pop();
+            while(!exits_A->empty()) exits_A->pop(); while(!exits_B->empty()) exits_B->pop();
 
             
 
-            mark_entries_and_exists_ghosted(n_alleles, e_table, &entries_A, &entries_B, &exits_A, &exits_B);
+            mark_entries_and_exists_ghosted(n_alleles, e_table, entries_A, entries_B, exits_A, exits_B);
 
             
             #ifdef VERBOSE
@@ -312,18 +312,15 @@ int main(int argc, char **av) {
             
 
             // Verify that all entries conduct to the same exit 
-            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, &entries_A, &entries_B, &exits_A, &exits_B, mp, e_table, (void *) &tsp, n_alleles);
+            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles);
 
             
 
-            bool A_is_better = true;
             long double best_offspring;
             if(*ind[i].get_fitness() < *ind[j].get_fitness()){
                 best_offspring = *ind[i].get_fitness();
-                A_is_better = true;
             }else{
                 best_offspring = *ind[j].get_fitness();
-                A_is_better = false;
             }
             
             #ifdef VERBOSE
@@ -334,7 +331,7 @@ int main(int argc, char **av) {
             uint64_t feas_index = 0;
             long double t_score_A = *ind[i].get_fitness(), t_score_B = *ind[j].get_fitness();
             for(uint64_t w=0;w<n_parts;w++){
-                if(feasibility_partitioning.feasible._e1[w] != NULL){
+                if(feasibility_partitioning.feasible._e1[w] != 0x0){
                     long double score_part_A = 0.0;
                     long double score_part_B = 0.0;
                     #ifdef VERBOSE
@@ -370,7 +367,9 @@ int main(int argc, char **av) {
                         }
                         
                         scores_A[feas_index] = score_part_A;
-                        scores_B[feas_index++] = score_part_B;
+                        scores_B[feas_index] = score_part_B;
+                        feas_index++;
+                        
 
                         t_score_A -= score_part_A; // To calculate the residual graph
                         t_score_B -= score_part_B;
@@ -399,8 +398,14 @@ int main(int argc, char **av) {
             
             
             if(feas_index > 0){
-                std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring;
+                std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index;
                 if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()) std::cout << "\t*"; 
+
+
+                // Re-check that they are local optima under 2-opt
+                build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+                two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
+
             }
             std::cout << "\n";
             //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
@@ -572,6 +577,9 @@ int main(int argc, char **av) {
     std::free(population);
     std::free(e_table);
     std::free(part_table);
+    std::free(scores_A);
+    std::free(scores_B);
+    std::free(chosen_entries);
 
     return 0;
 }
