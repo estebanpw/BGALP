@@ -140,8 +140,12 @@ int main(int argc, char **av) {
         #ifdef VERBOSE
         std::cout<< "F(1): " << *ind[i].get_fitness();
         #endif
-        build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+        build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp, n_neighbours);
         two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
+        for(uint64_t j=0;j<n_alleles;j++){
+            std::free(tsp.neighbours[j]);
+        }
+        std::free(tsp.neighbours);
         #ifdef VERBOSE
         std::cout<<"F(2): " << *ind[i].get_fitness() << "\n";
         #endif
@@ -403,8 +407,8 @@ int main(int argc, char **av) {
 
 
                 // Re-check that they are local optima under 2-opt
-                build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
-                two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
+                //build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
+                //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
 
             }
             std::cout << "\n";

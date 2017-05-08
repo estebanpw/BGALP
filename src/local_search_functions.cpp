@@ -70,7 +70,7 @@ int compare_neighbours(const void * p1, const void * p2){
     return 1;
 }
 
-void build_neighbours_matrix_and_DLB(uint64_t n_neighbours, void * sol_tsp){ // Build with n_nodes and use with less 
+void build_neighbours_matrix_and_DLB(uint64_t n_neighbours, void * sol_tsp, uint64_t to_keep_n){ // Build with n_nodes and use with less 
     Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) sol_tsp;
     tsp->neighbours = (neighbour_type **) std::malloc(n_neighbours * sizeof(neighbour_type *));
     tsp->DLB = (bool *) std::malloc(n_neighbours*sizeof(bool));
@@ -78,7 +78,7 @@ void build_neighbours_matrix_and_DLB(uint64_t n_neighbours, void * sol_tsp){ // 
     uint64_t j;
     for(uint64_t i=0; i<n_neighbours; i++){
         tsp->DLB[i] = false;
-        tsp->neighbours[i] = (neighbour_type *) std::malloc((n_neighbours-1) * sizeof(neighbour_type));
+        tsp->neighbours[i] = (neighbour_type *) std::malloc((n_neighbours) * sizeof(neighbour_type));
         if(tsp->neighbours[i] == NULL) throw "Could not allocate subloop of neighbours matrix";
         uint64_t index = 0;
         for(j=0; j<n_neighbours; j++){
@@ -91,7 +91,11 @@ void build_neighbours_matrix_and_DLB(uint64_t n_neighbours, void * sol_tsp){ // 
 
         // Sort neighbours according to distance
         qsort(tsp->neighbours[i], n_neighbours-1, sizeof(neighbour_type), compare_neighbours);
+        // Realloc 
+        tsp->neighbours[i] = (neighbour_type *) std::realloc(tsp->neighbours[i], to_keep_n * sizeof(neighbour_type));
     }
+
+    
     
 }
 
@@ -190,6 +194,7 @@ void two_opt_DLB_NL(uint64_t n_nodes, void * sol_tsp, Chromosome<uint64_t> * rou
     bool locally_optimal = false;
     bool improved = false;
     bool any_change = false;
+
     uint64_t tour_positions[n_nodes];
     for(uint64_t i=0;i<n_nodes;i++){
         tour_positions[*route->get_allele(i)] = i;
