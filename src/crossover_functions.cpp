@@ -76,6 +76,8 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
             e_table[current_allele] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
             e_table[current_allele]->partition = -1; // No partition
             e_table[current_allele]->node = current_allele;
+            if(cycle_id == CIRCUIT_A) e_table[current_allele]->orig_pos_A = i; else e_table[current_allele]->orig_pos_B = i;
+            
         }
 
         if(i > 0){ // The previous adjacent
@@ -357,7 +359,7 @@ int compare_Edges_T(const void * a, const void * b){
 }
 
 template <class T>
-Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes){
+Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, optimal_path<Chromo_TSP<T>> * best_paths, Chromosome<T> * A, Chromosome<T> * B){
     
     std::queue<Edge_T<T> *> aux_queue;
     Feasible<T> feasible; 
@@ -548,6 +550,40 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                     #endif
                     parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
                     */
+
+                    /*
+                    template <typename T>
+                        struct swath{
+                            T * origin;
+                            uint64_t pos;
+                            uint64_t length;
+                            long double score;
+                        };
+
+                    */
+
+                }else{
+                    // Generate table of optimal paths
+                    if(parts_A[i][j].score <= parts_B[i][j].score){
+                        uint64_t c_node = (parts_A[i][j].entry->node >= n_nodes) ? (parts_A[i][j].entry->node - n_nodes) : (parts_A[i][j].entry->node);
+                        //std::cout << "indexA: " << best_paths->indexes[c_node] << std::endl;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].origin = (Chromo_TSP<T> *) A;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].score = parts_A[i][j].score;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].pos = e_table[c_node]->orig_pos_A;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].length = length_A;
+                        best_paths->indexes[c_node]++;
+
+                    }else{
+                        uint64_t c_node = (parts_B[i][j].entry->node >= n_nodes) ? (parts_B[i][j].entry->node - n_nodes) : (parts_B[i][j].entry->node);
+                        //std::cout << "indexB: " << best_paths->indexes[c_node] << std::endl;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].origin = (Chromo_TSP<T> *) B;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].score = parts_B[i][j].score;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].pos = e_table[c_node]->orig_pos_B;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].length = length_B;
+                        best_paths->indexes[c_node]++;
+
+                    }
+                    
 
                 }
                 
@@ -986,6 +1022,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
                 master_node = ptr->node;
                 route_end = e_table[ptr->node];
 
+                // If its a ghost edge, convert 
                 *score += (long double) tsp->dist[(last_replaced->node >= n_nodes) ? (last_replaced->node - n_nodes) : (last_replaced->node)][(ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node)];
 
                 if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
@@ -1817,7 +1854,7 @@ template bool get_highest_node_unpartitioned_ghosted(uint64_t n_nodes, Edge_T<ui
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
-template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes);
+template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes, optimal_path<Chromo_TSP<uint64_t>> * best_paths, Chromosome<uint64_t> * A, Chromosome<uint64_t> * B);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);

@@ -95,6 +95,127 @@ void reading_function_TSP(FILE * input, void * type_structure){
     std::free(aux2);
 }
 
+void reading_function_VRP(FILE * input, void * type_structure){
+    /*
+    struct Sol_VRP_matrix{
+        long double ** dist;
+        uint64_t n;
+        uint64_t * demands; // Customer demands
+        uint64_t depot; // Node depot
+    };
+    */
+    
+    Sol_VRP_matrix * vrp_mat = (Sol_VRP_matrix *) type_structure;
+
+    uint64_t total = 0;
+    uint64_t id;
+    long double x, y;
+    
+    // Count lines
+    char buffer[MAX_LINE];
+    bool node_coord_section = false;
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+
+        //printf("Look pussy u read: %s\n", buffer);
+        if(strncmp(buffer, "DEMAND_SECTION", 14) == 0) break;
+
+        if(node_coord_section && 3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
+            total++;
+            #ifdef VERBOSE
+            fprintf(stdout, "%lu, %.3Le %.3Le\n", id, x, y);
+            #endif
+        }
+        if(strncmp(buffer, "NODE_COORD_SECTION", 18) == 0) node_coord_section = true;
+    }
+    // Go to start
+    rewind(input);
+
+    // Allocate space
+    long double * aux = (long double *) std::malloc(total * sizeof(long double));
+    long double * aux2 = (long double *) std::malloc(total * sizeof(long double));
+    if(aux == NULL || aux2 == NULL) throw "Could not allocate temporary vector for weight matrix";
+
+    vrp_mat->n = total;
+    vrp_mat->demands = (uint64_t *) std::malloc(total * sizeof(uint64_t));
+    if(vrp_mat->demands == NULL) throw "Could not allocate demands";
+    
+    vrp_mat->dist = (long double **) std::malloc(total * sizeof(long double *));
+    if(vrp_mat->dist == NULL) throw "Could not allocate TSP lib nodes (1)";
+    for(uint64_t i=0;i<total;i++){
+        vrp_mat->dist[i] = (long double *) malloc(total * sizeof(long double));
+        if(vrp_mat->dist[i] == NULL) throw "Could not allocate TSP lib nodes (2)";
+    }
+
+    // Add nodes
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+        if(strncmp(buffer, "DEMAND_SECTION", 14) == 0) break;
+        if(3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
+            aux[id-1] = x;
+            aux2[id-1] = y;
+        }
+    }
+
+    // Add demands
+    while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
+        if(strncmp(buffer, "DEPOT_SECTION", 13) == 0) break;
+        if(2 == sscanf(buffer, "%lu %Le", &id, &x)){
+            vrp_mat->demands[id-1] = x;
+        }
+    }
+
+    if(fgets(buffer, MAX_LINE, input) == 0) terror("No depot found");
+    if(1 == sscanf(buffer, "%lu", &id)){
+        vrp_mat->depot = id-1;
+    }
+
+    
+
+    /*
+    int64_t xd, yd;
+    long double rij;
+    long double tij;
+    */
+    // Calculate distances
+    for(uint64_t i=0;i<total;i++){
+        for(uint64_t j=0;j<total;j++){
+
+            // ATTENTION TODO
+            // Currently using pseudo euc distance 
+            // TODO parameterize this so that you dont have to re-compile
+
+            // EUC-2D
+            vrp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
+
+            // ATT 
+            
+            /*
+            xd = (int64_t)aux[i] - (int64_t)aux[j];
+            yd = (int64_t)aux2[i] - (int64_t)aux2[j];
+            rij = sqrtl( (xd*xd + yd*yd) / 10.0);
+            tij = (long double) (round(rij));
+            if(tij < rij) tsp_mat->dist[i][j] = tij+1; else tsp_mat->dist[i][j] = tij;
+            */
+            
+            //std::cout << "Between (" << aux[i] << ", " << aux[j]  << ") and (" << aux2[i] << ", " << aux2[j]  << ") yields " << tsp_mat->dist[i][j] << std::endl;
+            //std::cout << vrp_mat->dist[i][j] << " ";
+            //getchar();
+        }
+        //std::cout << std::endl;
+    }
+
+    /*
+    std::cout << "Demands" << std::endl;
+    for(uint64_t i=0;i<total;i++){
+        std::cout << vrp_mat->demands[i] << " ";
+    }
+
+    std::cout << "Depot" << vrp_mat->depot << std::endl;
+    */
+
+    std::free(aux);
+    std::free(aux2);
+}
+
 
 void reading_function_LB_reads(FILE * input, void * type_structure){
     Sol_LB_reads * LB_mat = (Sol_LB_reads *) type_structure;

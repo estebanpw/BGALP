@@ -75,6 +75,13 @@ struct Sol_TSP_matrix{
     bool * DLB; // Dont Look Bits array for 2opt
 };
 
+struct Sol_VRP_matrix{
+    long double ** dist;
+    uint64_t n;
+    uint64_t * demands; // Customer demands
+    uint64_t depot; // Node depot
+};
+
 // Struct for load balancing metagenomic reads 
 struct Sol_LB_reads{
     uint64_t * lengths;
@@ -103,7 +110,23 @@ struct Edge_T{
     uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
     int64_t connects_partition;         // If its a common edge, to which partition does it connect?
     struct Edge_T * out_node;
+    uint64_t orig_pos_A;                // Original position in the chromosome (use for constant access to allele in chromsome)
+    uint64_t orig_pos_B;                // Original position in the chromosome (use for constant access to allele in chromsome)
 
+};
+
+template <typename T>
+struct swath{
+    T * origin;
+    uint64_t pos;
+    uint64_t length;
+    long double score;
+};
+
+template <typename T>
+struct optimal_path{
+    swath<T> ** nodes;
+    uint64_t * indexes;
 };
 
 template <typename T>

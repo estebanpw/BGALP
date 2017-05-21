@@ -24,4 +24,5 @@ class Readstream{
 };
 
 void reading_function_TSP(FILE * input, void * type_structure); // For symmetric TSP 
+void reading_function_VRP(FILE * input, void * type_structure); // For CVRP
 void reading_function_LB_reads(FILE * input, void * type_structure); // Load balancing of metagenomic reads
