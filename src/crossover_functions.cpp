@@ -1838,6 +1838,9 @@ void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<E
     
 }
 
+int compare_swaths(const void * a, const void * b){
+    if( ((swath<uint64_t> *) a)->score <= ((swath<uint64_t> *) b)->score) return -1; else return 1;
+}
 
 
 template void single_point_crossover<unsigned char>(Chromosome<unsigned char> * a, Chromosome<unsigned char> * b, Chromosome<unsigned char> * replacement, Manager<unsigned char> * m);

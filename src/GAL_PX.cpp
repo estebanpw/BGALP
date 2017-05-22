@@ -30,7 +30,7 @@ int DEBUG_ACTIVE = 0;
 */
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks);
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols);
 
 int main(int argc, char **av) {
 
@@ -42,6 +42,8 @@ int main(int argc, char **av) {
     uint64_t part = 1;
     // Mix an individual between populations every k iterations
     uint64_t mix_every = n_itera/20;
+    // Number of random solutions to recombine
+    uint64_t random_sols = 10;
 
     // Number of trucks for the VRP
     uint64_t n_trucks = 1; // 1 is a TSP
@@ -54,7 +56,7 @@ int main(int argc, char **av) {
     tsp_lib[0] = '\0';
 
     // Init arguments
-    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks);
+    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols);
     mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
     // Readstream to load data 
@@ -140,7 +142,7 @@ int main(int argc, char **av) {
         
 
     // Get k random solutions
-    uint64_t random_sols = 10;
+    
     uint64_t n_combs = (random_sols*(random_sols-1))/2;
     uint64_t n_neighbours = 20;
 
@@ -553,6 +555,11 @@ int main(int argc, char **av) {
     uint64_t length;
     long double score;
     */
+
+    // Sort suboptimal tours 
+    for(uint64_t i=0; i<n_alleles; i++){
+        qsort(&best_paths.nodes[i][0], best_paths.indexes[i], sizeof(swath<uint64_t>), compare_swaths);
+    }
     // Print suboptimal tours
     for(uint64_t i=0; i<n_alleles; i++){
         std::cout << "At allele " << i << "---------" << std::endl;
@@ -585,7 +592,7 @@ int main(int argc, char **av) {
 }
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks){
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols){
     
     int pNum = 0;
     while(pNum < argc){
@@ -600,6 +607,7 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
             fprintf(stdout, "           -part       [Integer > 0] def: 1\n");
             fprintf(stdout, "           -mix        [Integer > 0] def: 10000/20\n");
             fprintf(stdout, "           -trucks     [Integer > 0] def: 1\n");
+            fprintf(stdout, "           -rsols      [Integer > 0] def: 10\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
@@ -617,6 +625,9 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
         }
         if(strcmp(av[pNum], "-part") == 0){
             *part = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-rsols") == 0){
+            *random_sols = (uint64_t) atoi(av[pNum+1]);
         }
         if(strcmp(av[pNum], "-mix") == 0){
             *mix_every = (uint64_t) atoi(av[pNum+1]);
