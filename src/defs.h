@@ -12,7 +12,7 @@
 #define CIRCUIT_A 0
 #define CIRCUIT_B 1
 #define __STDC_FORMAT_MACROS
-enum INITIALIZER { RANDOM, CLEAR };
+enum INITIALIZER { RANDOM, CLEAR, PETALS };
 
 // Double-evaluation free 
 #define max(a,b) \
@@ -49,6 +49,12 @@ struct Quartet{
     Pair<T> _p2;
 };
 
+template <typename T, typename K>
+struct DPair{
+    T _e1;
+    K _e2;
+};
+
 struct Position{
     int64_t x;
     int64_t y;
@@ -75,11 +81,14 @@ struct Sol_TSP_matrix{
     bool * DLB; // Dont Look Bits array for 2opt
 };
 
+
 struct Sol_VRP_matrix{
+    CPair<long double> * points;
     long double ** dist;
     uint64_t n;
     uint64_t * demands; // Customer demands
     uint64_t depot; // Node depot
+    long double capacity;
 };
 
 // Struct for load balancing metagenomic reads 

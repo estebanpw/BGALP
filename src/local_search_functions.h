@@ -1,6 +1,7 @@
 #pragma once
 #include <cfloat>
 #include <cstdlib>
+#include <cmath>
 #include "chromosome.h"
 #define __STDC_FORMAT_MACROS
 //Struct for PTHREADs

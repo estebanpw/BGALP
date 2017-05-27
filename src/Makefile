@@ -6,10 +6,13 @@ BIN=../bin
 all: GAL
 
 GAL: GAL.cpp
-	$(CXX) $(CFLAGS) memory_pool.cpp chromosome.cpp local_search_functions.cpp mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm population.cpp manager.cpp crossover_functions.cpp GAL.cpp -lpthread -o $(BIN)/GAL
+	$(CXX) $(CFLAGS) memory_pool.cpp chromosome.cpp local_search_functions.cpp -lm mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm population.cpp manager.cpp crossover_functions.cpp GAL.cpp -lpthread -o $(BIN)/GAL
 
 GAL_PX: GAL_PX.cpp
-	$(CXX) $(CFLAGS) memory_pool.cpp chromosome.cpp local_search_functions.cpp mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm population.cpp manager.cpp crossover_functions.cpp GAL_PX.cpp -lpthread -o $(BIN)/GAL_PX
+	$(CXX) $(CFLAGS) memory_pool.cpp chromosome.cpp local_search_functions.cpp -lm mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm population.cpp manager.cpp crossover_functions.cpp GAL_PX.cpp -lpthread -o $(BIN)/GAL_PX
+
+GAL_PX_ATSP: GAL_PX_ATSP.cpp
+	$(CXX) $(CFLAGS) memory_pool.cpp chromosome.cpp local_search_functions.cpp -lm mutation_functions.cpp readstream.cpp -lm common_functions.cpp -lm population.cpp manager.cpp crossover_functions.cpp GAL_PX_ATSP.cpp -lpthread -o $(BIN)/GAL_PX_ATSP
 
 clean:
 	rm -rf $(BIN)/GAL $(BIN)/GAL_PX

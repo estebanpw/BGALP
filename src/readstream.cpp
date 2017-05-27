@@ -117,6 +117,10 @@ void reading_function_VRP(FILE * input, void * type_structure){
     while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
 
         //printf("Look pussy u read: %s\n", buffer);
+        if(strncmp(buffer, "CAPACITY", 8) == 0){
+            sscanf(buffer, "CAPACITY : %Le", &x);
+            vrp_mat->capacity = x;
+        }
         if(strncmp(buffer, "DEMAND_SECTION", 14) == 0) break;
 
         if(node_coord_section && 3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
@@ -131,9 +135,11 @@ void reading_function_VRP(FILE * input, void * type_structure){
     rewind(input);
 
     // Allocate space
-    long double * aux = (long double *) std::malloc(total * sizeof(long double));
-    long double * aux2 = (long double *) std::malloc(total * sizeof(long double));
-    if(aux == NULL || aux2 == NULL) throw "Could not allocate temporary vector for weight matrix";
+    vrp_mat->points = (CPair<long double> *) std::malloc(total * sizeof(CPair<long double>));
+    if(vrp_mat->points == NULL) throw "Could not allocate vector for 2D points";
+    //long double * aux = (long double *) std::malloc(total * sizeof(long double));
+    //long double * aux2 = (long double *) std::malloc(total * sizeof(long double));
+    //if(aux == NULL || aux2 == NULL) throw "Could not allocate temporary vector for weight matrix";
 
     vrp_mat->n = total;
     vrp_mat->demands = (uint64_t *) std::malloc(total * sizeof(uint64_t));
@@ -150,8 +156,8 @@ void reading_function_VRP(FILE * input, void * type_structure){
     while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
         if(strncmp(buffer, "DEMAND_SECTION", 14) == 0) break;
         if(3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
-            aux[id-1] = x;
-            aux2[id-1] = y;
+            vrp_mat->points[id-1]._e1 = x;
+            vrp_mat->points[id-1]._e2 = y;
         }
     }
 
@@ -184,7 +190,7 @@ void reading_function_VRP(FILE * input, void * type_structure){
             // TODO parameterize this so that you dont have to re-compile
 
             // EUC-2D
-            vrp_mat->dist[i][j] = sqrtl(powl(aux[i] - aux[j], 2.0) + powl(aux2[i] - aux2[j], 2.0));
+            vrp_mat->dist[i][j] = sqrtl(powl(vrp_mat->points[i]._e1 - vrp_mat->points[j]._e1, 2.0) + powl(vrp_mat->points[i]._e2 - vrp_mat->points[j]._e2, 2.0));
 
             // ATT 
             
@@ -211,9 +217,6 @@ void reading_function_VRP(FILE * input, void * type_structure){
 
     std::cout << "Depot" << vrp_mat->depot << std::endl;
     */
-
-    std::free(aux);
-    std::free(aux2);
 }
 
 

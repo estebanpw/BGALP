@@ -46,7 +46,7 @@ int main(int argc, char **av) {
     uint64_t random_sols = 10;
 
     // Number of trucks for the VRP
-    uint64_t n_trucks = 1; // 1 is a TSP
+    uint64_t n_trucks = 6; // 1 is a TSP
 
     // TSP structure
     Sol_VRP_matrix vrp;
@@ -67,7 +67,7 @@ int main(int argc, char **av) {
 
 
     // Number of alleles per individual
-    uint64_t n_alleles = tsp.n;
+    uint64_t n_alleles = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
     
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
@@ -85,6 +85,16 @@ int main(int argc, char **av) {
     for(uint64_t i=0;i<n_individuals;i++){
         new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
     }
+    
+    // VRP chromosome
+    Chromo_VRP<uint64_t> * ind_vrp = (Chromo_VRP<uint64_t> *) std::malloc(sizeof(Chromo_VRP<uint64_t>));
+    if(ind_vrp == NULL) throw "Could not allocate individual vrp";
+    new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
+
+    ind_vrp[0].compute_fitness((void *) &vrp);
+    ind_vrp[0].print_chromosome();
+    exit(-1);
+
 
     // Add manager
     Manager<uint64_t> * manager = new Manager<uint64_t>(part, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);

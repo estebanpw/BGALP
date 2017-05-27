@@ -151,6 +151,63 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
     }
 }
 
+// CHromosome for VRP
+
+// Subset sum chromosome
+template <class T>
+Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP){
+    this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    if(this->chromosome == NULL) throw "Could not allocate chromosome";
+    this->length = alleles;
+    this->fitness = LDBL_MAX;
+    this->n_trucks = n_trucks;
+    this->capacity = capacity;
+    this->position = p;
+    this->depot = depot;
+    uint64_t seed; // Do not fix
+    if(init_type == RANDOM){
+        for(uint64_t i=1;i<alleles - (n_trucks - 1);i++){ this->chromosome[i] = i-1; }
+        for(uint64_t i=0 ;i<(n_trucks - 1); i++){ this->chromosome[(alleles -(n_trucks - 1)) + i] = this->depot; } // Add depots
+        random_shuffle_templated(this->length, this->chromosome, seed, g, u_d); // shuffle them 
+    }
+    if(init_type == PETALS){
+        generate_petals_from_points(this->chromosome, sol_VRP);
+    }
+    
+        
+}
+
+
+template <class T>
+void Chromo_VRP<T>::compute_fitness(void * solution_info){
+    Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) solution_info;
+    long double path_sum = 0;
+    long double capacity_sum = 0;
+
+    /*
+struct Sol_VRP_matrix{
+    long double ** dist;
+    uint64_t n;
+    uint64_t * demands; // Customer demands
+    uint64_t depot; // Node depot
+};
+    */
+
+    for(uint64_t i=1; i<this->length; i++){
+        //std::cout << "Computing from " << this->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
+        path_sum +=  vrp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
+        capacity_sum += vrp->demands[this->chromosome[i]];
+    }
+    //std::cout << "Computing from " << this->chromosome[0] << " to " << this->chromosome[this->length-1] << " adds " << tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]] << std::endl;
+    path_sum += vrp->dist[this->depot][this->chromosome[0]]; //First vehicle depot 
+    capacity_sum += vrp->demands[this->chromosome[0]]; // First customer
+    path_sum += vrp->dist[this->chromosome[this->length-1]][this->depot];
+    this->fitness = path_sum;    
+}
+
+
+// Chromosome for Load balancing
+
 template <class T>
 Chromo_LB<T>::Chromo_LB(uint64_t alleles, Position p, uint64_t n_threads, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d){
     this->chromosome = (T *) std::malloc(alleles * sizeof(T));
@@ -198,4 +255,5 @@ template class Chromosome<uint64_t>;
 template class Chromo_rucksack<double>;
 template class Chromo_subsetsum<unsigned char>;
 template class Chromo_TSP<uint64_t>;
+template class Chromo_VRP<uint64_t>;
 template class Chromo_LB<unsigned char>;

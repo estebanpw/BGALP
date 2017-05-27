@@ -69,6 +69,17 @@ public:
 };
 
 template <class T>
+class Chromo_VRP : public Chromosome<T> {
+private:
+    uint64_t n_trucks;
+    long double capacity;
+    T depot;
+public:
+    Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP);
+    void compute_fitness(void * solution_info);
+};
+
+template <class T>
 class Chromo_LB : public Chromosome<T> {
 public:
     Chromo_LB(uint64_t alleles, Position p, uint64_t n_threads, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d);
