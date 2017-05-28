@@ -18,3 +18,4 @@ void build_neighbours_matrix_and_DLB(uint64_t n_neighbours, void * sol_tsp, uint
 bool improve_city_2_opt(Chromosome<uint64_t> * tour, uint64_t base_pos, void * sol_tsp, uint64_t n_nodes, uint64_t n_neighbours, uint64_t * tour_positions);
 void two_opt_DLB_NL(uint64_t n_nodes, void * sol_tsp, Chromosome<uint64_t> * route, uint64_t n_neighbours);
 void * run_pthreads_two_opt(void * a);
+void generate_petals_from_points_and_suboptimal(uint64_t * c, void * sol_VRP, optimal_path<Chromo_TSP<uint64_t>> * best_paths);

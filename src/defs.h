@@ -126,7 +126,7 @@ struct Edge_T{
 
 template <typename T>
 struct swath{
-    T * origin;
+    T * origin; // points to the chromosome 
     uint64_t pos;
     uint64_t length;
     long double score;

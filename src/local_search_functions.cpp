@@ -226,3 +226,116 @@ void * run_pthreads_two_opt(void * a){
 
 
 
+void generate_petals_from_points_and_suboptimal(uint64_t * c, void * sol_VRP, optimal_path<Chromo_TSP<uint64_t>> * best_paths){
+    /*
+    
+
+
+    template <typename T, typename K>
+    struct DPair{
+        T _e1;
+        K _e2;
+    };
+    */
+    
+    
+    Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) sol_VRP;
+    
+    // node, angle
+    unsigned char * used_alphas = (unsigned char *) std::calloc(vrp->n, sizeof(unsigned char)); // To tell which ones were used 
+    DPair<uint64_t, long double> * alpha_sorted_table = (DPair<uint64_t, long double> *) std::malloc(vrp->n * sizeof(DPair<uint64_t, long double>));
+    if(alpha_sorted_table == NULL) throw "Could not allocate table of sorted angles for nodes";
+
+    // First, convert coordinates to make depot be the reference. Transform to polar coordinates. 
+    long double x_prime, y_prime, alpha;
+    for(uint64_t i=1; i<vrp->n; i++){
+        // Transform respect to 0,0
+        x_prime = vrp->points[i]._e1 - vrp->points[0]._e1;
+        y_prime = vrp->points[i]._e2 - vrp->points[0]._e2;
+
+        // Convert to polar (ignore radius)
+        alpha = atan2(y_prime, x_prime);
+
+        // Insert into node table
+        alpha_sorted_table[i-1]._e1 = i;
+        alpha_sorted_table[i-1]._e2 = alpha;
+        #ifdef VERBOSE
+        std::cout << i << ": " << alpha << std::endl;
+        #endif
+    }
+
+    // Sort by angle and then just generate the solution from a random point in order while capacity constrains hold
+    qsort((void *) &alpha_sorted_table[0], vrp->n - 1, sizeof(DPair<uint64_t, long double>), &compare_alpha_petals);
+
+
+    /*
+    struct Sol_VRP_matrix{
+        CPair<long double> * points;
+        long double ** dist;
+        uint64_t n;
+        uint64_t * demands; // Customer demands
+        uint64_t depot; // Node depot
+        long double capacity;
+    };
+    */
+
+    // Fill the petals
+    uint64_t allele_tracker = 0;
+    uint64_t i_in_chromo = 0;
+    long double current_cap = 0;
+    uint64_t n_trucks = 1;
+    
+    while(allele_tracker < vrp->n - 1){
+        
+        /*
+        optimal_path<Chromo_TSP<uint64_t>> * best_paths
+template <typename T>
+struct swath{
+    T * origin; // points to the chromosome 
+    uint64_t pos;
+    uint64_t length;
+    long double score;
+};
+
+template <typename T>
+struct optimal_path{
+    swath<T> ** nodes;
+    uint64_t * indexes;
+};
+        */
+        // conditions
+        // 1 -> there is an optimal path
+        if(best_paths->indexes[allele_tracker] > 0){
+            uint64_t c_len = 0;
+            uint64_t chromo_track = best_paths->nodes[allele_tracker][0].pos;
+
+            while(c_len < best_paths->nodes[allele_tracker][0].length && current_cap + vrp->demands[*best_paths->nodes[allele_tracker][0].origin->get_allele(chromo_track)] < vrp->capacity){
+                c[i_in_chromo] = *best_paths->nodes[allele_tracker][0].origin->get_allele(chromo_track); // Add node                
+                current_cap += vrp->demands[*best_paths->nodes[allele_tracker][0].origin->get_allele(chromo_track)];
+                std::cout << "Partially inserted " << c[i_in_chromo] << " and capacity is " << current_cap << std::endl;
+                used_alphas[*best_paths->nodes[allele_tracker][0].origin->get_allele(chromo_track)] = 1; // used 
+                i_in_chromo++;
+                allele_tracker++;
+                chromo_track++;
+                c_len++;
+            }
+
+        } // deadlock with allele_tracker
+
+        if(current_cap + vrp->demands[alpha_sorted_table[allele_tracker]._e1] > vrp->capacity){
+            std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
+            c[i_in_chromo] = vrp->depot;
+            n_trucks++;
+            current_cap = 0;
+        }else if(used_alphas[allele_tracker] == 0){
+            current_cap += vrp->demands[alpha_sorted_table[allele_tracker]._e1];
+            c[i_in_chromo] = alpha_sorted_table[allele_tracker]._e1;
+            allele_tracker++;
+        }else{
+            allele_tracker++;
+        }
+        i_in_chromo++;
+    }
+    
+}
+

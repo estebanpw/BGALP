@@ -46,7 +46,7 @@ int main(int argc, char **av) {
     uint64_t random_sols = 10;
 
     // Number of trucks for the VRP
-    uint64_t n_trucks = 6; // 1 is a TSP
+    uint64_t n_trucks = 5; // 1 is a TSP
 
     // TSP structure
     Sol_VRP_matrix vrp;
@@ -67,7 +67,8 @@ int main(int argc, char **av) {
 
 
     // Number of alleles per individual
-    uint64_t n_alleles = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
+    uint64_t n_alleles_vrp = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
+    uint64_t n_alleles = tsp.n;
     
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
@@ -89,11 +90,11 @@ int main(int argc, char **av) {
     // VRP chromosome
     Chromo_VRP<uint64_t> * ind_vrp = (Chromo_VRP<uint64_t> *) std::malloc(sizeof(Chromo_VRP<uint64_t>));
     if(ind_vrp == NULL) throw "Could not allocate individual vrp";
-    new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
+    new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
 
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();
-    exit(-1);
+    //exit(-1);
 
 
     // Add manager
@@ -423,138 +424,7 @@ int main(int argc, char **av) {
             //Quartet<Edge_T<uint64_t>> current_px;
 
 
-            /*
-            // Print partitions 
-            for(uint64_t w=0;w<n_parts;w++){
-
-                std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
-                List<Surrogate_Edge_T<uint64_t>> * ls_ptr = part_table[w].su_gates;
-                while(ls_ptr != NULL){
-                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << "(" << ls_ptr->v.left->partition << ", " << ls_ptr->v.right->partition << ") , ";
-                    ls_ptr = ls_ptr->next;
-                }
-                std::cout << std::endl;
-            }
-            std::cout << " ------------------ " << std::endl;
             
-
-            for(uint64_t w=0;w<n_parts;w++){
-
-                std::cout << w << ": " << part_table[w].n_surrogate_edges << " -> ";
-                List<Surrogate_Edge_T<uint64_t>> * ls_ptr = part_table[w].su_gates;
-                while(ls_ptr != NULL){
-                    std::cout << ls_ptr->v.left->node << " " << ls_ptr->v.right->node << "(" << ls_ptr->v.left->partition << ", " << ls_ptr->v.right->partition << ") , ";
-                    ls_ptr = ls_ptr->next;
-                }
-                std::cout << std::endl;
-                
-                if(part_table[w].n_surrogate_edges == 2){
-                    //current_px._p1._e1 = part_table[w].su_gates->v
-                
-                    current_px._p1._e1 = part_table[w].su_gates->v.left;
-                    current_px._p1._e2 = part_table[w].su_gates->v.right;
-                    current_px._p2._e1 = part_table[w].su_gates->next->v.left;
-                    current_px._p2._e2 = part_table[w].su_gates->next->v.right;
-
-                    if(!is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e1->node, current_px._p2._e2->node)
-                    && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e1->node) && !is_connected_to(e_table, current_px._p1._e2->node, current_px._p2._e2->node) ){
-
-                        
-                        
-                        if(e_table[part_table[w].su_gates->v.left->node]->partition != (int64_t) w) the_other_partition = e_table[part_table[w].su_gates->v.left->node]->partition; else the_other_partition = e_table[part_table[w].su_gates->v.right->node]->partition;
-
-                        score_subtour_A = evaluate_partition_subtours(&part_table[w].su_gates->v, &part_table[w].su_gates->next->v, &ind[i], (void *) &tsp, (int64_t) w, the_other_partition, e_table);
-                        score_subtour_B = evaluate_partition_subtours(&part_table[w].su_gates->v, &part_table[w].su_gates->next->v, &ind[j], (void *) &tsp, (int64_t) w, the_other_partition, e_table);
-                        std::cout << "Score A: " << score_subtour_A << std::endl;
-                        std::cout << "Score B: " << score_subtour_B << std::endl;
-
-                        max_score_A = (*ind[i].get_fitness() - score_subtour_A) + score_subtour_B;
-                        max_score_B = (*ind[j].get_fitness() - score_subtour_B) + score_subtour_A;
-
-                        
-
-
-                        if(max_score_A <= *ind[i].get_fitness() && max_score_A <= *ind[j].get_fitness() && max_score_A <= max_score_B){
-                            // A with B is best
-                            std::cout << "Best is A with B " << max_score_A << std::endl;
-                            apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[i], &ind[j], offspring_1);
-                        }
-                        else if(max_score_B <= *ind[i].get_fitness() && max_score_B <= *ind[j].get_fitness() && max_score_B <= max_score_A){
-                            // B with A is best 
-                            std::cout << "Best is B with A " << max_score_B << std::endl;
-                            apply_PX_chromosomes_best(n_alleles, e_table, &current_px, &ind[j], &ind[i], offspring_1);
-                        }
-                        else if(*ind[i].get_fitness() <= *ind[j].get_fitness()){
-                            // A as is, is best
-                            std::cout << "Best is A " << *ind[i].get_fitness() << std::endl;
-                            offspring_1->hard_copy_no_pointers(&ind[i]);
-                        }else{
-                            // B as is, is best
-                            std::cout << "Best is B " << *ind[j].get_fitness() << std::endl;
-                            offspring_1->hard_copy_no_pointers(&ind[j]);
-                        }
-                        offspring_1->compute_fitness((void *) &tsp);
-                        std::cout << "#\t" << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << *offspring_1->get_fitness() << std::endl;
-
-                        
-                        getchar();
-                    }
-
-                    
-                }
-                
-            }
-            */
-            /*
-            if(n_parts == 2){
-                // Find if partition crossover is feasible
-                Quartet<Edge_T<uint64_t>> px;
-                find_surrogate_edge_that_partitionates(n_alleles, e_table, &px);
-                if(px._p1._e1 != NULL){
-
-                    ind[i].print_chromosome();
-                    ind[j].print_chromosome();
-                    apply_PX_chromosomes(n_alleles, e_table, &px, &ind[i], &ind[j], offspring_1, offspring_2);
-                    // Recompute fitness 
-                    offspring_1->compute_fitness((void *) &tsp);
-                    offspring_1->verify_chromosome("(1) after PX");
-                    offspring_2->compute_fitness((void *) &tsp);
-                    offspring_2->verify_chromosome("(2) after PX");
-
-                    std::cout << "$$$$$$$$$$$$$\n";
-                    offspring_1->print_chromosome();
-                    offspring_2->print_chromosome();
-                    std::cout << "$$$$$$$$$$$$$\n";
-
-                    std::cout << "#\t" << *ind[i].get_fitness() << "\t";
-                    std::cout << *ind[j].get_fitness() << "\t";
-                    std::cout << *offspring_1->get_fitness() << "\t" << *offspring_2->get_fitness() << "\t";
-
-                    //std::cout << "---------------" << std::endl;
-                    //locally_optimals[i].print_chromosome();
-                    //locally_optimals[j].print_chromosome();
-                    //std::cout << "\tgenerates" << std::endl;
-                    //offspring_1->print_chromosome();
-
-                    
-                    after_px_2opt->set_fitness(LDBL_MAX);
-                    run_2opt(offspring_1, after_px_2opt, (void *) &tsp);
-                    //offspring_1->verify_chromosome("(1) after PX and 2-opt");
-                    std::cout << *offspring_1->get_fitness() << "\t";
-                    
-
-                    //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
-                    //offspring_2->print_chromosome();
-
-                    after_px_2opt->set_fitness(LDBL_MAX);
-                    run_2opt(offspring_2, after_px_2opt, (void *) &tsp);
-                    //offspring_1->verify_chromosome("(2) after PX and 2-opt");
-                    std::cout << *offspring_2->get_fitness() << std::endl;
-                    //std::cout << "\tRespect to 2opt:\t" << *after_px_2opt->get_fitness() << std::endl;
-                    
-                }
-            }
-            */
             
         }
     }
@@ -577,6 +447,15 @@ int main(int argc, char **av) {
             std::cout << "@" << best_paths.nodes[i][j].pos << " has " << best_paths.nodes[i][j].score << std::endl;
         }
     }
+
+    // Generate vrp with suboptimal paths inside
+    ind_vrp[0].compute_fitness((void *) &vrp);
+    ind_vrp[0].print_chromosome();
+    generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
+    ind_vrp[0].compute_fitness((void *) &vrp);
+    ind_vrp[0].print_chromosome();
+
+
     
     
     for(uint64_t i=0;i<tsp.n;i++){
