@@ -89,6 +89,8 @@ struct Sol_VRP_matrix{
     uint64_t * demands; // Customer demands
     uint64_t depot; // Node depot
     long double capacity;
+    neighbour_type ** neighbours; // For 2opt
+    bool * DLB; // Dont Look Bits array for 2opt
 };
 
 // Struct for load balancing metagenomic reads 
@@ -130,6 +132,7 @@ struct swath{
     uint64_t pos;
     uint64_t length;
     long double score;
+    uint64_t verifier;
 };
 
 template <typename T>

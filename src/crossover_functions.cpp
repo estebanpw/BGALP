@@ -76,9 +76,9 @@ void fill_edge_table(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * mp, 
             e_table[current_allele] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
             e_table[current_allele]->partition = -1; // No partition
             e_table[current_allele]->node = current_allele;
-            if(cycle_id == CIRCUIT_A) e_table[current_allele]->orig_pos_A = i; else e_table[current_allele]->orig_pos_B = i;
             
         }
+        if(cycle_id == CIRCUIT_A) e_table[current_allele]->orig_pos_A = i; else e_table[current_allele]->orig_pos_B = i;
 
         if(i > 0){ // The previous adjacent
 
@@ -559,7 +559,13 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                             uint64_t length;
                             long double score;
                         };
-
+                        At allele 4---------
+                        @71 -> 4 has 43.2134::veri:4
+                            ->4, 22, 
+                        @0 -> 57 has 43.2134::veri:4
+                            ->57, 61, 
+                        @0 -> 22 has 43.2134::veri:4
+                            ->22, 45, 
                     */
 
                 }else{
@@ -571,6 +577,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].score = parts_A[i][j].score;
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].pos = e_table[c_node]->orig_pos_A;
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].length = length_A;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].verifier = parts_A[i][j].entry->node;
                         best_paths->indexes[c_node]++;
 
                     }else{
@@ -580,6 +587,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].score = parts_B[i][j].score;
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].pos = e_table[c_node]->orig_pos_B;
                         best_paths->nodes[c_node][best_paths->indexes[c_node]].length = length_B;
+                        best_paths->nodes[c_node][best_paths->indexes[c_node]].verifier = parts_B[i][j].entry->node;
                         best_paths->indexes[c_node]++;
 
                     }

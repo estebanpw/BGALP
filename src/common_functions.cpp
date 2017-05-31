@@ -148,7 +148,6 @@ void generate_petals_from_points(T * c, void * sol_VRP){
     /*
     
 
-
     template <typename T, typename K>
     struct DPair{
         T _e1;
@@ -218,6 +217,9 @@ void generate_petals_from_points(T * c, void * sol_VRP){
     }
     
 }
+
+
+
 
 
 

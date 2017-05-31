@@ -46,7 +46,7 @@ int main(int argc, char **av) {
     uint64_t random_sols = 10;
 
     // Number of trucks for the VRP
-    uint64_t n_trucks = 5; // 1 is a TSP
+    uint64_t n_trucks = 10; // 1 is a TSP
 
     // TSP structure
     Sol_VRP_matrix vrp;
@@ -88,9 +88,10 @@ int main(int argc, char **av) {
     }
     
     // VRP chromosome
-    Chromo_VRP<uint64_t> * ind_vrp = (Chromo_VRP<uint64_t> *) std::malloc(sizeof(Chromo_VRP<uint64_t>));
+    Chromo_VRP<uint64_t> * ind_vrp = (Chromo_VRP<uint64_t> *) std::malloc(2*sizeof(Chromo_VRP<uint64_t>));
     if(ind_vrp == NULL) throw "Could not allocate individual vrp";
     new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
+    new (&ind_vrp[1]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
 
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();
@@ -444,16 +445,23 @@ int main(int argc, char **av) {
     for(uint64_t i=0; i<n_alleles; i++){
         std::cout << "At allele " << i << "---------" << std::endl;
         for(uint64_t j=0; j<best_paths.indexes[i]; j++){
-            std::cout << "@" << best_paths.nodes[i][j].pos << " has " << best_paths.nodes[i][j].score << std::endl;
+            std::cout << "@" << best_paths.nodes[i][j].pos << " -> " << *best_paths.nodes[i][j].origin->get_allele(best_paths.nodes[i][j].pos) << " has " << best_paths.nodes[i][j].score << "::veri:" << best_paths.nodes[i][j].verifier << std::endl << "\t->";
+            for(uint64_t k=0; k<best_paths.nodes[i][j].length; k++){
+                std::cout << *best_paths.nodes[i][j].origin->get_allele(best_paths.nodes[i][j].pos+k) << ", ";
+            }
+            std::cout << "\n";
         }
     }
 
     // Generate vrp with suboptimal paths inside
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();
-    generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
+    //generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
+    generate_petals_from_points(ind_vrp[0].get_chromosome(), (void *) &vrp);
+    run_2opt_vrp(&ind_vrp[0], &ind_vrp[1], (void *) &vrp, n_trucks);
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();
+
 
 
     
