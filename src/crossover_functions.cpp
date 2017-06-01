@@ -1847,7 +1847,7 @@ void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<T> ** e_table, Quartet<E
 }
 
 int compare_swaths(const void * a, const void * b){
-    if( ((swath<uint64_t> *) a)->score <= ((swath<uint64_t> *) b)->score) return -1; else return 1;
+    if( ((swath<uint64_t> *) a)->length < ((swath<uint64_t> *) b)->score) return 1; else return -1;
 }
 
 

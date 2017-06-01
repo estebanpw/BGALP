@@ -64,6 +64,8 @@ int main(int argc, char **av) {
     rs->read();
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
+    // Disable this 
+    vrp.capacity = 300;
 
 
     // Number of alleles per individual
@@ -456,8 +458,11 @@ int main(int argc, char **av) {
     // Generate vrp with suboptimal paths inside
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();
-    //generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
-    generate_petals_from_points(ind_vrp[0].get_chromosome(), (void *) &vrp);
+    generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
+    ind_vrp[0].compute_fitness((void *) &vrp);
+    ind_vrp[0].print_chromosome();
+    ind_vrp[0].verify_chromosome(" after petals ");
+    //generate_petals_from_points(ind_vrp[0].get_chromosome(), (void *) &vrp);
     run_2opt_vrp(&ind_vrp[0], &ind_vrp[1], (void *) &vrp, n_trucks);
     ind_vrp[0].compute_fitness((void *) &vrp);
     ind_vrp[0].print_chromosome();

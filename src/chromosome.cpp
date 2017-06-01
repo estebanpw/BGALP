@@ -156,7 +156,7 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
 // Subset sum chromosome
 template <class T>
 Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP){
-    this->chromosome = (T *) std::malloc(alleles * sizeof(T));
+    this->chromosome = (T *) std::calloc(alleles, sizeof(T));
     if(this->chromosome == NULL) throw "Could not allocate chromosome";
     this->length = alleles;
     this->fitness = LDBL_MAX;
@@ -194,7 +194,7 @@ struct Sol_VRP_matrix{
     */
 
     for(uint64_t i=1; i<this->length; i++){
-        //std::cout << "Computing from " << this->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
+        //std::cout << "Computing from " << thvoid Chromo_VRP<T>::verify_chromosome(char * step)is->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
         path_sum +=  vrp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
         capacity_sum += vrp->demands[this->chromosome[i]];
     }
@@ -203,6 +203,24 @@ struct Sol_VRP_matrix{
     capacity_sum += vrp->demands[this->chromosome[0]]; // First customer
     path_sum += vrp->dist[this->chromosome[this->length-1]][this->depot];
     this->fitness = path_sum;    
+}
+
+template <class T>
+void Chromo_VRP<T>::verify_chromosome(char * step){
+    uint64_t verification[this->length];
+    for(uint64_t i=0;i<this->length;i++){
+        verification[i] = 0;
+    }
+
+    for(uint64_t i=0;i<this->length;i++){
+        verification[this->chromosome[i]]++;
+    }
+    for(uint64_t i=0;i<this->length;i++){
+        if(verification[i] != 1 && i != 0 && i < 80){
+            std::cout << "Found error at " << i << " at " << step << " having " << verification[i] << std::endl;
+            throw "Aborting";
+        }
+    }
 }
 
 

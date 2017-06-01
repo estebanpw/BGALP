@@ -32,6 +32,7 @@ public:
     long double * get_fitness(){ return &this->fitness; }
     void set_fitness(long double f){ this->fitness = f; }
     virtual void compute_fitness(void * solution_info) = 0;
+    virtual void verify_chromosome(char * step) = 0;
     void hard_copy_no_pointers(Chromosome<T> * source);
     void random_bit_fill();
     void random_bit_fill(uint64_t max_l);
@@ -77,6 +78,7 @@ private:
 public:
     Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP);
     void compute_fitness(void * solution_info);
+    void verify_chromosome(char * step);
 };
 
 template <class T>

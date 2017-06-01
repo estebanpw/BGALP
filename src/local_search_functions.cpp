@@ -94,7 +94,7 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
     // To separate 2-OPT per chromosome 
     uint64_t stops[n_trucks];
     uint64_t index = 1;
-    stops[0] = 0;
+    stops[0] = 1;
     for(i = 0; i< route->get_length(); i++){
         if(*route->get_allele(i) == 0){
             stops[index++] = i;
@@ -119,15 +119,20 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
                     _2optSwap_VRP(route, two_opt_chrom, i, k, stops[stop_idx+1]-1);
                     two_opt_chrom->compute_fitness(vrp);
                     if (*two_opt_chrom->get_fitness() < best_distance){
-                        for(i=stops[stop_idx];i<stops[stop_idx+1];i++){
+
+                        fprintf(stdout, "Improved at %" PRIu64", %" PRIu64" which is (%"PRIu64", %"PRIu64"\n", i, k, *route->get_allele(i), *route->get_allele(k));
+                        
+
+                        for(i=stops[stop_idx];i<stops[stop_idx+1]-1;i++){
                             route->set_allele(i, two_opt_chrom->get_allele(i));
                         }
                         route->set_fitness(*two_opt_chrom->get_fitness());
-                        /*
-                        fprintf(stdout, "Improved at %" PRIu64", %" PRIu64"\n", i, k);
-                        route->print_chromosome();
-                        getchar();
-                        */
+                        
+                        route->verify_chromosome(" 2opt ");
+
+                        //route->print_chromosome();
+                        //getchar();
+                        
                         //improve = 0;
 
                         // deactivate this for less complexity
@@ -516,19 +521,22 @@ struct optimal_path{
         if(best_paths->indexes[alpha_sorted_table[allele_tracker]._e1] > 0){
             uint64_t c_len = 0;
             uint64_t chromo_track = best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].pos;
+            uint64_t t_len = best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].length;
+            Chromo_TSP<uint64_t> * cmt = best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin;
 
-            std::cout << *best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track) << " <-> " << alpha_sorted_table[allele_tracker]._e1 << std::endl;
+            std::cout << *cmt->get_allele(chromo_track) << " <-> " << alpha_sorted_table[allele_tracker]._e1 << std::endl;
 
-            while(c_len < best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].length && current_cap + vrp->demands[*best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track)] < vrp->capacity){
-                c[i_in_chromo] = *best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track); // Add node                
-                current_cap += vrp->demands[*best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track)];
-                std::cout << "Partially inserted " << c[i_in_chromo] << " and capacity is " << current_cap << " is it? " << best_paths->indexes[*best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track)] << std::endl;
-                used_alphas[*best_paths->nodes[alpha_sorted_table[allele_tracker]._e1][0].origin->get_allele(chromo_track)] = 1; // used 
+            while(c_len < t_len && (current_cap + vrp->demands[*cmt->get_allele(chromo_track)]) <= vrp->capacity && *cmt->get_allele(chromo_track) != vrp->depot && used_alphas[*cmt->get_allele(chromo_track)] == 0){
+                c[i_in_chromo] = *cmt->get_allele(chromo_track); // Add node                
+                current_cap += vrp->demands[*cmt->get_allele(chromo_track)];
+                std::cout << "Partially inserted " << c[i_in_chromo] << " and capacity is " << current_cap << " is it? " << best_paths->indexes[*cmt->get_allele(chromo_track)] << std::endl;
+                used_alphas[*cmt->get_allele(chromo_track)] = 1; // used 
                 i_in_chromo++;
-                allele_tracker++;
+                //allele_tracker++;
                 chromo_track++;
                 c_len++;
             }
+            if(c_len > 0) allele_tracker++;
 
         } // deadlock with allele_tracker
 
@@ -537,15 +545,18 @@ struct optimal_path{
             c[i_in_chromo] = vrp->depot;
             n_trucks++;
             current_cap = 0;
-        }else if(used_alphas[allele_tracker] == 0){
+            i_in_chromo++;
+        }else if(used_alphas[alpha_sorted_table[allele_tracker]._e1] == 0){
             current_cap += vrp->demands[alpha_sorted_table[allele_tracker]._e1];
+            used_alphas[alpha_sorted_table[allele_tracker]._e1] = 1;
             c[i_in_chromo] = alpha_sorted_table[allele_tracker]._e1;
             std::cout << "Copied      " << c[i_in_chromo] << " and capacity is " << current_cap << std::endl;
             allele_tracker++;
+            i_in_chromo++;
         }else{
             allele_tracker++;
         }
-        i_in_chromo++;
+        
     }
     
 }
