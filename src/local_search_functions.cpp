@@ -98,6 +98,7 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
     for(i = 0; i< route->get_length(); i++){
         if(*route->get_allele(i) == 0){
             stops[index++] = i;
+            std::cout << "stopping at " << i << std::endl; getchar();
         }
     }
 

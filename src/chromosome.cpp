@@ -182,7 +182,7 @@ template <class T>
 void Chromo_VRP<T>::compute_fitness(void * solution_info){
     Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) solution_info;
     long double path_sum = 0;
-    long double capacity_sum = 0;
+    //long double capacity_sum = 0;
 
     /*
 struct Sol_VRP_matrix{
@@ -196,12 +196,13 @@ struct Sol_VRP_matrix{
     for(uint64_t i=1; i<this->length; i++){
         //std::cout << "Computing from " << thvoid Chromo_VRP<T>::verify_chromosome(char * step)is->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
         path_sum +=  vrp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
-        capacity_sum += vrp->demands[this->chromosome[i]];
+        //capacity_sum += vrp->demands[this->chromosome[i]];
     }
     //std::cout << "Computing from " << this->chromosome[0] << " to " << this->chromosome[this->length-1] << " adds " << tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]] << std::endl;
     path_sum += vrp->dist[this->depot][this->chromosome[0]]; //First vehicle depot 
-    capacity_sum += vrp->demands[this->chromosome[0]]; // First customer
+    //capacity_sum += vrp->demands[this->chromosome[0]]; // First customer
     path_sum += vrp->dist[this->chromosome[this->length-1]][this->depot];
+    //std::cout << "Sum of capacity : " << capacity_sum << " and distance travelled " << path_sum << std::endl;
     this->fitness = path_sum;    
 }
 
