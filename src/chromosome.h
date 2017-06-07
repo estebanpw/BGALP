@@ -76,7 +76,7 @@ private:
     long double capacity;
     T depot;
 public:
-    Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP);
+    Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP, uint64_t node_shift);
     void compute_fitness(void * solution_info);
     void verify_chromosome(char * step);
 };

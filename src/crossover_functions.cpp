@@ -635,7 +635,7 @@ void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp
     Edge_T<T> * b, * c, * d, * e;
     
     for(i=0;i<n_nodes;i++){
-        if(e_table[i]->degree > 3){
+        if(e_table[i]->degree == 4){
             // Found a vertex with degree 4, split it and add a ghost vertex
 
             // Make the connections i.e. if we have: 

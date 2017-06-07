@@ -155,7 +155,7 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
 
 // Subset sum chromosome
 template <class T>
-Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP){
+Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP, uint64_t node_shift){
     this->chromosome = (T *) std::calloc(alleles, sizeof(T));
     if(this->chromosome == NULL) throw "Could not allocate chromosome";
     this->length = alleles;
@@ -171,7 +171,7 @@ Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capac
         random_shuffle_templated(this->length, this->chromosome, seed, g, u_d); // shuffle them 
     }
     if(init_type == PETALS){
-        generate_petals_from_points(this->chromosome, sol_VRP);
+        generate_petals_from_points(this->chromosome, sol_VRP, node_shift);
     }
     
         

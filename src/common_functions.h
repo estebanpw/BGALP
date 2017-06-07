@@ -46,5 +46,5 @@ uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table
 int compare_alpha_petals(const void * p1, const void * p2);
 
 template <class T>
-void generate_petals_from_points(T * c, void * sol_VRP);
+void generate_petals_from_points(T * c, void * sol_VRP, uint64_t nodes_shift);
 

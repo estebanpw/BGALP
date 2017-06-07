@@ -98,7 +98,7 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
     for(i = 0; i< route->get_length(); i++){
         if(*route->get_allele(i) == 0){
             stops[index++] = i;
-            std::cout << "stopping at " << i << std::endl; getchar();
+            //std::cout << "stopping at " << i << std::endl; getchar();
         }
     }
 
@@ -121,7 +121,7 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
                     two_opt_chrom->compute_fitness(vrp);
                     if (*two_opt_chrom->get_fitness() < best_distance){
 
-                        fprintf(stdout, "Improved at %" PRIu64", %" PRIu64" which is (%"PRIu64", %"PRIu64"\n", i, k, *route->get_allele(i), *route->get_allele(k));
+                        //fprintf(stdout, "Improved at %" PRIu64", %" PRIu64" which is (%"PRIu64", %"PRIu64"\n", i, k, *route->get_allele(i), *route->get_allele(k));
                         
 
                         for(i=stops[stop_idx];i<stops[stop_idx+1]-1;i++){

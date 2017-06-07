@@ -83,76 +83,27 @@ int main(int argc, char **av) {
     std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
 
     // Allocate chromosomes
-    Chromo_TSP<uint64_t> * ind = (Chromo_TSP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_TSP<uint64_t>));
+    
+    Chromo_VRP<uint64_t> * ind = (Chromo_VRP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_VRP<uint64_t>));
+    Chromo_VRP<uint64_t> aux_vrp(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, 0);
+    uint64_t node_shift = max((uint64_t)1, n_alleles/n_individuals);
+    uint64_t curr_shift = 0;
     if(ind == NULL) throw "Could not allocate individuals";
     for(uint64_t i=0;i<n_individuals;i++){
-        new (&ind[i]) Chromo_TSP<uint64_t>(n_alleles, p, RANDOM, &generator, &u_d);
+        //new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
+        new (&ind[i]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, curr_shift);
+        curr_shift += node_shift;
+        ind[i].compute_fitness((void *) &vrp);
+        ind[i].print_chromosome();
+        run_2opt_vrp(&ind[i], &aux_vrp, (void *) &vrp, n_trucks);
+        std::cout << "2-OPT improved ";
+        ind[i].print_chromosome();
     }
-    
-    // VRP chromosome
-    Chromo_VRP<uint64_t> * ind_vrp = (Chromo_VRP<uint64_t> *) std::malloc(2*sizeof(Chromo_VRP<uint64_t>));
-    if(ind_vrp == NULL) throw "Could not allocate individual vrp";
-    new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
-    new (&ind_vrp[1]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
+        
 
-    ind_vrp[0].compute_fitness((void *) &vrp);
-    ind_vrp[0].print_chromosome();
+    
     //exit(-1);
 
-
-    // Add manager
-    Manager<uint64_t> * manager = new Manager<uint64_t>(part, mix_every, &ordered_crossover, &mutation_function_TSP, (void *) &tsp, MINIMIZE);
-    manager->generate_marks_for_ordered_crossover(n_alleles);
-
-
-
-    // Partitionate population
-    Population<uint64_t> ** population = (Population<uint64_t> **) std::malloc(part*sizeof(Population<uint64_t> *));
-    if(population == NULL) throw "Could not allocate populations";
-    uint64_t rate = n_individuals/part;
-    for(uint64_t i=0;i<part;i++){
-        // Assign chromosomes to population
-        population[i] = new Population<uint64_t>(rate, &ind[i*rate]);
-        population[i]->set_neighborhood_function(&all_together);
-
-        // Add the populations to the manager
-        manager->set_populations(population[i], i);
-    }
-
-    
-
-    // Put the manager to run
-    manager->run(n_itera);
-
-    #ifdef VERBOSE
-    std::cout << "Best individual fitness:" << *manager->get_best_individual()->get_fitness() << std::endl;
-    
-    manager->get_best_individual()->print_chromosome();
-    #endif
-    //getchar();
-
-    // Get k best solutions
-    /*
-    uint64_t n_best_sols = 5; 
-    Chromo_TSP<uint64_t> ** best_chromos = (Chromo_TSP<uint64_t> **) manager->retrieve_k_best_solutions(n_best_sols);
-    for(uint64_t i=0;i<n_best_sols;i++){
-        best_chromos[i]->print_chromosome();
-    }
-    getchar();
-    */
-    /*
-        template <typename T>
-    struct swath{
-        Chromosome<T> * origin;
-        uint64_t pos;
-        uint64_t length;
-    };
-
-    template <typename T>
-    struct optimal_path{
-        swath<T> * nodes;
-    };
-    */
         
 
     // Get k random solutions
@@ -161,45 +112,14 @@ int main(int argc, char **av) {
     uint64_t n_neighbours = 20;
 
     // Allocate structure to hold best optimal paths generated in TSP
-    optimal_path<Chromo_TSP<uint64_t>> best_paths;
-    best_paths.nodes = (swath<Chromo_TSP<uint64_t>> **) std::malloc(n_alleles * sizeof(swath<Chromo_TSP<uint64_t>> *));
-    best_paths.indexes = (uint64_t * ) std::calloc(n_alleles, sizeof(uint64_t));
-    if(best_paths.indexes == NULL) throw("Could not allocate indexes for table of best paths");
-    for(uint64_t i=0; i<n_alleles; i++){
-
-        best_paths.nodes[i] = (swath<Chromo_TSP<uint64_t>> *) std::calloc(n_combs, sizeof(swath<Chromo_TSP<uint64_t>>));
-        if(best_paths.nodes[i] == NULL) throw("Could not allocate table of best paths");
-    }
     
-
-    //build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
-    //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[0], n_neighbours);
-
-
     // Pthreads 
     //two_opt_args args[random_sols];
     //pthread_t threads[random_sols];
     
-    #ifdef VERBOSE
-    std::cout << "Random solutions: " << std::endl;
-    #endif
-    for(uint64_t i=0;i<random_sols;i++){
-        #ifdef VERBOSE
-        std::cout<< "F(1): " << *ind[i].get_fitness();
-        #endif
-        build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp, n_neighbours);
-        two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
-        for(uint64_t j=0;j<n_alleles;j++){
-            std::free(tsp.neighbours[j]);
-        }
-        std::free(tsp.neighbours);
-        #ifdef VERBOSE
-        std::cout<<"F(2): " << *ind[i].get_fitness() << "\n";
-        #endif
-    }
     
     
-
+    
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
@@ -207,6 +127,8 @@ int main(int argc, char **av) {
     if(part_table == NULL) throw "Could not allocate partition table";
     memory_pool * mp = new memory_pool(POOL_SIZE);
     
+    
+
     std::queue<uint64_t> * FIFO_queue = new std::queue<uint64_t>();
 
     // Queues for multipartitioning
@@ -239,17 +161,22 @@ int main(int argc, char **av) {
             fill_edge_table(&ind[i], e_table, mp, CIRCUIT_A);
             fill_edge_table(&ind[j], e_table, mp, CIRCUIT_B);
             
+            
             // Calculate degree
             generate_degree(n_alleles, e_table);
+            
 
+            
             #ifdef VERBOSE
-            //print_edge_tables(n_alleles, e_table);
+            print_edge_tables(n_alleles, e_table);
             #endif
+
+            
 
             // Insert ghost vertices
             add_ghost_vertices(n_alleles, e_table, mp);
 
-
+            
             #ifdef VERBOSE
             //print_edge_tables_ghosted(n_alleles, e_table);
             //getchar();
@@ -270,18 +197,23 @@ int main(int argc, char **av) {
                     current_label++;
                 }
             }while(keep_partitioning);
+
+            
             
             // Get number of partitions 
             //uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
             uint64_t n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
 
-            //std::cout << "Number of partitions: " << n_parts << std::endl;
-            std::cout << recombinations++ << "\t" << n_parts << "\t";
+            std::cout << "Number of partitions: " << n_parts << std::endl;
+            // For good print
+            //std::cout << recombinations++ << "\t" << n_parts << "\t";
 
+            
             #ifdef VERBOSE
             print_edge_tables_ghosted(n_alleles, e_table);
             #endif
             
+            /*
 
             // Reset partition table 
             //memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
@@ -355,8 +287,7 @@ int main(int argc, char **av) {
                         #ifdef VERBOSE
                         std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
                         #endif
-                        //score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
-                        //score_part_B = (long double) evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
+
                         score_part_B = feasibility_partitioning.feasible._e2[w][k].score;
 
                         #ifdef VERBOSE
@@ -377,15 +308,7 @@ int main(int argc, char **av) {
                         t_score_A -= score_part_A; // To calculate the residual graph
                         t_score_B -= score_part_B;
                     }
-                    /*
-                    for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
-                        std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        //score_part_B += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
-                        score_part_B += evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e2[w][k].reverse, &ind[j], (void *) &tsp, e_table);
-                    }
 
-                    std::cout << "Scores:\n(A): " << score_part_A << "\n(B): " << score_part_B << std::endl;
-                    */
                 }
             }
 
@@ -420,7 +343,7 @@ int main(int argc, char **av) {
             continue;
             
 
-
+            */
 
             
             // To hold pairs of surrogates
@@ -431,13 +354,7 @@ int main(int argc, char **av) {
             
         }
     }
-    
     /*
-    T * origin;
-    uint64_t pos;
-    uint64_t length;
-    long double score;
-    */
 
     // Sort suboptimal tours 
     for(uint64_t i=0; i<n_alleles; i++){
@@ -476,8 +393,6 @@ int main(int argc, char **av) {
     }
     std::free(tsp.dist);
 
-
-    delete manager;
     delete mp;
     delete rs;
     //delete offspring_1;
@@ -489,6 +404,8 @@ int main(int argc, char **av) {
     std::free(scores_A);
     std::free(scores_B);
     std::free(chosen_entries);
+    */
+    
 
     return 0;
 }

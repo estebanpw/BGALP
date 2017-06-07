@@ -144,7 +144,7 @@ int compare_alpha_petals(const void * p1, const void * p2){
 }
 
 template <class T>
-void generate_petals_from_points(T * c, void * sol_VRP){
+void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     /*
     
 
@@ -197,20 +197,22 @@ void generate_petals_from_points(T * c, void * sol_VRP){
 
     // Fill the petals
     uint64_t allele_tracker = 0;
+    uint64_t take_shifted_node = node_shift;
     uint64_t i_in_chromo = 0;
     long double current_cap = 0;
     uint64_t n_trucks = 1;
     
     while(allele_tracker < vrp->n - 1){
         
-        if(current_cap + vrp->demands[alpha_sorted_table[allele_tracker]._e1] > vrp->capacity){
+        if(current_cap + vrp->demands[alpha_sorted_table[take_shifted_node]._e1] > vrp->capacity){
             std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
             c[i_in_chromo] = vrp->depot;
             n_trucks++;
             current_cap = 0;
         }else{
-            current_cap += vrp->demands[alpha_sorted_table[allele_tracker]._e1];
-            c[i_in_chromo] = alpha_sorted_table[allele_tracker]._e1;
+            current_cap += vrp->demands[alpha_sorted_table[take_shifted_node]._e1];
+            c[i_in_chromo] = alpha_sorted_table[take_shifted_node]._e1;
+            take_shifted_node = (take_shifted_node + 1) % (vrp->n - 1);
             allele_tracker++;
         }
         i_in_chromo++;
@@ -232,4 +234,4 @@ template void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
 template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
-template void generate_petals_from_points(uint64_t * c, void * sol_VRP);
+template void generate_petals_from_points(uint64_t * c, void * sol_VRP, uint64_t node_shift);
