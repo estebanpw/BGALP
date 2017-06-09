@@ -123,8 +123,7 @@ int main(int argc, char **av) {
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
-    PXTable<uint64_t> * part_table = (PXTable<uint64_t> *) std::malloc(n_alleles * sizeof(PXTable<uint64_t>));
-    if(part_table == NULL) throw "Could not allocate partition table";
+    
     memory_pool * mp = new memory_pool(POOL_SIZE);
     
     
@@ -158,8 +157,8 @@ int main(int argc, char **av) {
             memset(&scores_B[0], (long double) 0, n_alleles);
 
             // Fill edge table for two random solutions
-            fill_edge_table(&ind[i], e_table, mp, CIRCUIT_A);
-            fill_edge_table(&ind[j], e_table, mp, CIRCUIT_B);
+            fill_edge_table_vrp(&ind[i], e_table, mp, CIRCUIT_A, vrp.depot);
+            fill_edge_table_vrp(&ind[j], e_table, mp, CIRCUIT_B, vrp.depot);
             
             
             // Calculate degree
@@ -174,7 +173,7 @@ int main(int argc, char **av) {
             
 
             // Insert ghost vertices
-            add_ghost_vertices(n_alleles, e_table, mp);
+            add_ghost_vertices_vrp(n_alleles, e_table, mp, vrp.depot);
 
             
             #ifdef VERBOSE
@@ -193,7 +192,7 @@ int main(int argc, char **av) {
                 keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
                 //keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
                 if(keep_partitioning){
-                    find_connected_components(node_id, current_label, e_table, FIFO_queue);
+                    find_connected_components_vrp(node_id, current_label, e_table, FIFO_queue, vrp.depot);
                     current_label++;
                 }
             }while(keep_partitioning);
@@ -213,14 +212,12 @@ int main(int argc, char **av) {
             print_edge_tables_ghosted(n_alleles, e_table);
             #endif
             
-            /*
-
-            // Reset partition table 
-            //memset(part_table, 0, n_alleles*sizeof(PXTable<uint64_t>));
+            
 
             // Generate surrogate edges for partitions 
             
-            shorten_common_tours_ghosted(e_table, n_alleles);
+            shorten_common_tours_ghosted(e_table, n_alleles); // TODO does this one need to be changed?
+
 
             
 
@@ -231,9 +228,10 @@ int main(int argc, char **av) {
 
             
 
-            mark_entries_and_exists_ghosted(n_alleles, e_table, entries_A, entries_B, exits_A, exits_B);
+            mark_entries_and_exists_ghosted_vrp(n_alleles, e_table, entries_A, entries_B, exits_A, exits_B, vrp.depot);
 
             
+
             #ifdef VERBOSE
             std::cout << "================================================================" << std::endl;
             std::cout << "Combining " << std::endl;
@@ -245,7 +243,9 @@ int main(int argc, char **av) {
             
 
             // Verify that all entries conduct to the same exit 
-            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &best_paths, &ind[i], &ind[j]);
+            //Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &best_paths, &ind[i], &ind[j]);
+
+            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits_vrp(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &ind[i], &ind[j], vrp.depot);
 
             
 
@@ -343,7 +343,7 @@ int main(int argc, char **av) {
             continue;
             
 
-            */
+            
 
             
             // To hold pairs of surrogates
@@ -400,7 +400,7 @@ int main(int argc, char **av) {
     std::free(ind);
     std::free(population);
     std::free(e_table);
-    std::free(part_table);
+    
     std::free(scores_A);
     std::free(scores_B);
     std::free(chosen_entries);
