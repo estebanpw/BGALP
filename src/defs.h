@@ -119,11 +119,13 @@ struct Edge_T{
     bool incoming_A;                      // Tells if the edge is incoming or outcoming (sequential order in TSP)
     bool incoming_B;
     uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
+    uint64_t subsolution_in_A;          // The subsolution (aka truck) that owns this node in solution A 
+    uint64_t subsolution_in_B;          // The subsolution (aka truck) that owns this node in solution B 
     int64_t connects_partition;         // If its a common edge, to which partition does it connect?
     struct Edge_T * out_node;
     uint64_t orig_pos_A;                // Original position in the chromosome (use for constant access to allele in chromsome)
     uint64_t orig_pos_B;                // Original position in the chromosome (use for constant access to allele in chromsome)
-
+    bool breakpoint;                    // As if it was a common one 
 };
 
 template <typename T>

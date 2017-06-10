@@ -65,7 +65,7 @@ int main(int argc, char **av) {
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
     // Disable this 
-    vrp.capacity = 100;
+    vrp.capacity = 300;
 
 
     // Number of alleles per individual
@@ -182,7 +182,8 @@ int main(int argc, char **av) {
             #endif
 
             
-
+            // Find breakpoint nodes and mark them as common 
+            mark_breakpoint_edges_vrp(n_alleles, e_table);
 
             // Locate partitions (attempt to find only two parts.)
             uint64_t node_id, current_label = 0;
@@ -218,6 +219,9 @@ int main(int argc, char **av) {
             
             shorten_common_tours_ghosted(e_table, n_alleles); // TODO does this one need to be changed?
 
+            #ifdef VERBOSE
+            std::cout << "Shortened common tours\n";
+            #endif
 
             
 

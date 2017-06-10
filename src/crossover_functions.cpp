@@ -199,17 +199,27 @@ void fill_edge_table_vrp(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * 
     uint64_t i;
     Edge_T<T> * previous;
     uint64_t current_allele, next_allele, previous_allele;
+    uint64_t current_subsolution = 0;
     // Add edges from circuit
     for(i=0;i<a->get_length();i++){
         
-
+        
+        if(current_allele == depot_id) current_subsolution++; // Truck to which it belongs in the current solution
         current_allele = *a->get_allele(i);
+        
         
         if(e_table[current_allele] == NULL){
             // Add node
             e_table[current_allele] = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
             e_table[current_allele]->partition = -1; // No partition
             e_table[current_allele]->node = current_allele;
+            
+            // Indicate which truck owns this node in the current solution
+            if(cycle_id == CIRCUIT_A) e_table[current_allele]->subsolution_in_A = current_subsolution;
+            else
+            e_table[current_allele]->subsolution_in_B = current_subsolution;
+
+            e_table[current_allele]->breakpoint = false;
             
         }
         if(cycle_id == CIRCUIT_A) e_table[current_allele]->orig_pos_A = i; else e_table[current_allele]->orig_pos_B = i;
@@ -471,7 +481,9 @@ void mark_entries_and_exists_ghosted_vrp(uint64_t n_nodes, Edge_T<T> ** e_table,
             n_edges_circuit_A = 0;
             n_edges_circuit_B = 0;
             satisfies_common = NULL;
+            //std::cout << "Get stuck forever on " << i << "\n";
             Pair<Edge_T<uint64_t>> my_pair = abstract_replace_surrogate_by_one_vrp(e_table, i, depot);
+            //std::cout << "see?\n";
             if(my_pair._e1 == NULL || my_pair._e2 == NULL) continue;
             while(ptr != NULL){
                 
@@ -1302,6 +1314,8 @@ void add_ghost_vertices_vrp(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool 
             e_table[n_nodes+i]->degree = 3;
             e_table[n_nodes+i]->n_commons = 1; // The weighted zero
             e_table[n_nodes+i]->partition = -1; // Yet unpartitioned
+            e_table[n_nodes+i]->subsolution_in_A = e_table[i]->subsolution_in_A;
+            e_table[n_nodes+i]->subsolution_in_B = e_table[i]->subsolution_in_B;
             
             
             // Get references 
@@ -1487,6 +1501,98 @@ void add_ghost_vertices_vrp(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool 
 }
 
 template <class T>
+void mark_breakpoint_edges_vrp(uint64_t n_nodes, Edge_T<T> ** e_table){
+
+    uint64_t i;
+    Edge_T<T> * ptr;
+    /*
+struct Edge_T{
+    uint64_t node;
+    unsigned char common;
+    struct Edge_T * next;
+    int64_t partition;
+    uint64_t degree;
+    uint64_t n_commons;
+    bool already_tried_to_partitionate; // To mark if it was used to generate connected components
+    bool already_surrogate;             // To mark if the edge was used in a surrogate 
+    bool is_entry_cycle_A;              // To mark whether the edge is an entry of the connected component
+    bool is_entry_cycle_B;
+    bool is_exit_cycle_A;               // Same but with exit 
+    bool is_exit_cycle_B;
+    bool incoming_A;                      // Tells if the edge is incoming or outcoming (sequential order in TSP)
+    bool incoming_B;
+    uint64_t belongs_to_cycle;          // Holds the ID from the hamiltonian cycle that generated it (0 or 1 currently using only two cycles)
+    uint64_t subsolution_in_A;          // The subsolution (aka truck) that owns this node in solution A 
+    uint64_t subsolution_in_B;          // The subsolution (aka truck) that owns this node in solution B 
+    int64_t connects_partition;         // If its a common edge, to which partition does it connect?
+    struct Edge_T * out_node;
+    uint64_t orig_pos_A;                // Original position in the chromosome (use for constant access to allele in chromsome)
+    uint64_t orig_pos_B;                // Original position in the chromosome (use for constant access to allele in chromsome)
+
+};
+    */
+    uint64_t cases_found = 0;
+    for(i=0;i<2*n_nodes;i++){
+        
+        if(e_table[i] != NULL){
+            // Find an edge that is not common which connects two nodes that belong to the same subsolution in one 
+            // but to different subsolutions in the other solution
+            ptr = e_table[i]->next;
+            
+            while(ptr != NULL){
+
+                if(ptr->common == UNCOMMON && e_table[i]->subsolution_in_A == e_table[ptr->node]->subsolution_in_A
+                && e_table[i]->subsolution_in_B != e_table[ptr->node]->subsolution_in_B){
+                    // Found it 
+                    // Make it common to find new partitions 
+                    //ptr->common = COMMON;
+                    ptr->breakpoint = true;
+                    cases_found++;
+                    //e_table[i]->n_commons++;
+
+                    // Mark it as common on the other side as well (the incoming)
+                    Edge_T<T> * on_the_other = e_table[ptr->node]->next;
+                    while(on_the_other != NULL){
+                        if(on_the_other->node == i){
+                            //on_the_other->common = COMMON;
+                            on_the_other->breakpoint = true;
+                        }
+                        on_the_other = on_the_other->next;
+                    }
+
+                }
+                if(ptr->common == UNCOMMON && e_table[i]->subsolution_in_B == e_table[ptr->node]->subsolution_in_B
+                && e_table[i]->subsolution_in_A != e_table[ptr->node]->subsolution_in_A){
+                    // Found it (other possible case)
+                    //ptr->common = COMMON;
+                    ptr->breakpoint = true;
+                    cases_found++;
+                    //e_table[i]->n_commons++;
+
+                    // Mark it as common on the other side as well (the incoming)
+                    Edge_T<T> * on_the_other = e_table[ptr->node]->next;
+                    while(on_the_other != NULL){
+                        if(on_the_other->node == i){
+                            //on_the_other->common = COMMON;
+                            on_the_other->breakpoint = true;
+                        }
+                        on_the_other = on_the_other->next;
+                    }
+                }
+
+                // Traverse to next 
+                ptr = ptr->next;
+            }
+        }
+    }
+    #ifdef VERBOSE
+    std::cout<<"Found " << cases_found << " cases of breakpoint nodes\n";
+    getchar();
+    #endif
+}
+
+
+template <class T>
 bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id){
     
     *node_id = 0;
@@ -1585,7 +1691,7 @@ void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, 
     ptr = e_table[init_node]->next;
     e_table[init_node]->partition = partition_label;
     while(ptr != NULL){
-        if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->node != depot){
+        if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->breakpoint == false && ptr->node != depot){
             FIFO_queue->push(ptr->node);
             e_table[ptr->node]->partition = partition_label;
         }
@@ -1598,7 +1704,7 @@ void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, 
         if(e_table[target_node] != NULL){
             ptr = e_table[target_node]->next;
             while(ptr != NULL){
-                if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->node != depot){
+                if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->breakpoint == false && ptr->node != depot){
                     FIFO_queue->push(ptr->node);
                     e_table[ptr->node]->partition = partition_label;
                 }
@@ -1928,16 +2034,18 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_vrp(Edge_T<T> ** e_table, uint
 
     while(ptr != NULL){ // Until we find no more common edges
         
+        
         // Loop until next common edge
         
         while(ptr != NULL && ptr->common != COMMON){
             ptr = ptr->next;
+            //if(i == 50)std::cout << "1:" << ptr->node << "\n";
             if(ptr != NULL && ptr->node == depot) goto finish;
         }
         
         if(ptr != NULL && ptr->node != last_replaced->node){
             
-        
+            //if(i == 50)std::cout << "2:" << ptr->node << "\n";
             // Update previous so we wont traverse it again 
             
             //printf("%" PRId64", ", e_table[ptr->node]->partition);
@@ -1953,6 +2061,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_vrp(Edge_T<T> ** e_table, uint
             
         }else if(ptr != NULL){
             // It is the same common edge as before, try to get next 
+            //if(i == 50)std::cout << "3:"<<ptr->node<<"\n";
             ptr = ptr->next;
         }
     }
@@ -2720,4 +2829,5 @@ template long double evaluate_partition_subtours_multiple_ghosted_final(Edge_T<u
 template uint64_t evaluate_partition_subtours(Surrogate_Edge_T<uint64_t> * start, Surrogate_Edge_T<uint64_t> * end, Chromosome<uint64_t> * c, void * solution_info, int64_t partition1, int64_t partition2, Edge_T<uint64_t> ** e_table);
 template void apply_PX_chromosomes(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1, Chromosome<uint64_t> * offspring_2);
 template void apply_PX_chromosomes_best(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * px, Chromosome<uint64_t> * P1, Chromosome<uint64_t> * P2, Chromosome<uint64_t> * offspring_1);
+template void mark_breakpoint_edges_vrp(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 //template Part_list<uint64_t> * generate_lists_from_G(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, memory_pool * mp);
