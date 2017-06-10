@@ -230,7 +230,8 @@ void fill_edge_table_vrp(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * 
                 // Its a NULL one (vertex not added)
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = next_allele;
-                if(et_ptr->node == depot_id) et_ptr->common = COMMON; else et_ptr->common = UNCOMMON;
+                //if(et_ptr->node == depot_id) et_ptr->common = COMMON; else 
+                et_ptr->common = UNCOMMON;
                 if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = true; else et_ptr->incoming_B = true;
                 et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
@@ -260,7 +261,8 @@ void fill_edge_table_vrp(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * 
                 // Its a NULL one (vertex not added)
                 et_ptr = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
                 et_ptr->node = previous_allele;
-                if(et_ptr->node == depot_id) et_ptr->common = COMMON; else et_ptr->common = UNCOMMON;
+                //if(et_ptr->node == depot_id) et_ptr->common = COMMON; else 
+                et_ptr->common = UNCOMMON;
                 if(cycle_id == CIRCUIT_A) et_ptr->incoming_A = false; else et_ptr->incoming_B = false; // It goes out
                 et_ptr->belongs_to_cycle = cycle_id;
                 et_ptr->next = NULL;
@@ -292,7 +294,8 @@ void fill_edge_table_vrp(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * 
     if(!was_found){
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = *a->get_allele(0);
-        et_ptr->next->common = COMMON; // Fixed to common because its between 0 and something
+        et_ptr->next->common = UNCOMMON;
+        //et_ptr->next->common = COMMON; // Fixed to common because its between 0 and something
         if(cycle_id == CIRCUIT_A) et_ptr->next->incoming_A = true; else et_ptr->next->incoming_B = true;
         et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;
@@ -316,7 +319,8 @@ void fill_edge_table_vrp(Chromosome<T> * a, Edge_T<T> ** e_table, memory_pool * 
     if(!was_found){
         et_ptr->next = (Edge_T<T> *) mp->request_bytes(sizeof(Edge_T<T>));
         et_ptr->next->node = depot_id;
-        et_ptr->next->common = COMMON;
+        et_ptr->next->common = UNCOMMON;
+        //et_ptr->next->common = COMMON;
         if(cycle_id == CIRCUIT_A) et_ptr->next->incoming_A = false; else et_ptr->next->incoming_B = false;
         et_ptr->next->belongs_to_cycle = cycle_id;
         et_ptr->next->next = NULL;

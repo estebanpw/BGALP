@@ -65,7 +65,7 @@ int main(int argc, char **av) {
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
     // Disable this 
-    vrp.capacity = 300;
+    vrp.capacity = 100;
 
 
     // Number of alleles per individual
@@ -92,7 +92,7 @@ int main(int argc, char **av) {
     for(uint64_t i=0;i<n_individuals;i++){
         //new (&ind_vrp[0]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp);
         new (&ind[i]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, curr_shift);
-        curr_shift += node_shift;
+        curr_shift = (curr_shift + node_shift) % (tsp.n - 1);
         ind[i].compute_fitness((void *) &vrp);
         ind[i].print_chromosome();
         run_2opt_vrp(&ind[i], &aux_vrp, (void *) &vrp, n_trucks);

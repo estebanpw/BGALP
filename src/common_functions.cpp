@@ -184,6 +184,11 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     qsort((void *) &alpha_sorted_table[0], vrp->n - 1, sizeof(DPair<uint64_t, long double>), &compare_alpha_petals);
 
 
+    std::cout << "Take shifted node: " << node_shift << std::endl;
+    for(uint64_t i=0; i<vrp->n-1; i++){
+        std::cout << i << ": " << alpha_sorted_table[i]._e1 << " -> " << alpha_sorted_table[i]._e2 << std::endl;
+    }
+
     /*
     struct Sol_VRP_matrix{
         CPair<long double> * points;
