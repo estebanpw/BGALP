@@ -188,6 +188,7 @@ int main(int argc, char **av) {
             // Locate partitions (attempt to find only two parts.)
             uint64_t node_id, current_label = 0;
             bool keep_partitioning = true;
+            e_table[vrp.depot]->already_tried_to_partitionate = true;
             do{
                 
                 keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
