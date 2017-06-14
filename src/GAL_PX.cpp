@@ -65,7 +65,7 @@ int main(int argc, char **av) {
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
     // Disable this 
-    vrp.capacity = 300;
+    vrp.capacity = 100;
 
 
     // Number of alleles per individual
@@ -182,8 +182,7 @@ int main(int argc, char **av) {
             #endif
 
             
-            // Find breakpoint nodes and mark them as common 
-            mark_breakpoint_edges_vrp(n_alleles, e_table);
+            
 
             // Locate partitions (attempt to find only two parts.)
             uint64_t node_id, current_label = 0;
@@ -199,17 +198,44 @@ int main(int argc, char **av) {
                 }
             }while(keep_partitioning);
 
-            
+            uint64_t n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
+
+            //#ifdef VERBOSE
+            std::cout << "Initial number of partitions: " << n_parts << std::endl;
+            //getchar();
+            //#endif
+
+            // Find breakpoint nodes and mark them as common 
+            mark_breakpoint_edges_vrp(n_alleles, e_table, vrp.depot);
+
+            // Rellocate extra partitions 
+            // Locate partitions (attempt to find only two parts.)
+            keep_partitioning = true;
+            do{
+                
+                keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
+                //keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
+                if(keep_partitioning){
+                    find_connected_components_vrp(node_id, current_label, e_table, FIFO_queue, vrp.depot);
+                    current_label++;
+                }
+            }while(keep_partitioning);
+
             
             // Get number of partitions 
             //uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
-            uint64_t n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
+            n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
+
+            //#ifdef VERBOSE
+            std::cout << "Extra number of partitions: " << n_parts << std::endl;
+            //getchar();
+            //#endif
 
             std::cout << "Number of partitions: " << n_parts << std::endl;
             // For good print
             //std::cout << recombinations++ << "\t" << n_parts << "\t";
 
-            
+            print_edge_tables_ghosted(n_alleles, e_table); getchar();
             #ifdef VERBOSE
             print_edge_tables_ghosted(n_alleles, e_table);
             #endif

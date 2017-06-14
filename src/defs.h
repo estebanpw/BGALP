@@ -110,6 +110,7 @@ struct Edge_T{
     int64_t partition;
     uint64_t degree;
     uint64_t n_commons;
+    uint64_t n_breakpoints;
     bool already_tried_to_partitionate; // To mark if it was used to generate connected components
     bool already_surrogate;             // To mark if the edge was used in a surrogate 
     bool is_entry_cycle_A;              // To mark whether the edge is an entry of the connected component

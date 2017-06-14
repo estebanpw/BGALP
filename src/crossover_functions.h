@@ -39,7 +39,7 @@ template <class T>
 Pair<Edge_T<T>> exit_from_entry(Edge_T<T> ** e_table, Edge_T<T> * entry, unsigned char CIRCUIT);
 
 template <class T>
-void mark_breakpoint_edges_vrp(uint64_t n_nodes, Edge_T<T> ** e_table);
+void mark_breakpoint_edges_vrp(uint64_t n_nodes, Edge_T<T> ** e_table, T depot);
 
 template <class T>
 bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id);
