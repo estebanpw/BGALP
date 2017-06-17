@@ -65,7 +65,7 @@ int main(int argc, char **av) {
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
     // Disable this 
-    vrp.capacity = 300;
+    vrp.capacity = 100;
 
 
     // Number of alleles per individual
