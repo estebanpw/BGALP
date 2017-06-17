@@ -30,7 +30,7 @@ int DEBUG_ACTIVE = 0;
 */
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols);
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity);
 
 int main(int argc, char **av) {
 
@@ -46,7 +46,7 @@ int main(int argc, char **av) {
     uint64_t random_sols = 10;
 
     // Number of trucks for the VRP
-    uint64_t n_trucks = 10; // 1 is a TSP
+    uint64_t n_trucks = 30; // 1 is a TSP
 
     // TSP structure
     Sol_VRP_matrix vrp;
@@ -56,7 +56,9 @@ int main(int argc, char **av) {
     tsp_lib[0] = '\0';
 
     // Init arguments
-    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols);
+    vrp.capacity = 0;
+    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols, &vrp.capacity);
+    long double temp_capacity = vrp.capacity;
     mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
     // Readstream to load data 
@@ -64,14 +66,17 @@ int main(int argc, char **av) {
     rs->read();
     tsp.dist = vrp.dist;
     tsp.n = vrp.n;
-    // Disable this 
-    vrp.capacity = 300;
+    // Override to adjust capacity
+    if(temp_capacity != 0) vrp.capacity = temp_capacity;
+    //vrp.capacity = 1000;
+
 
 
     // Number of alleles per individual
     uint64_t n_alleles_vrp = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
     uint64_t n_alleles = tsp.n;
-    
+    long double best_fitness = DBL_MAX;
+    uint64_t n_improved_local = 0;
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
@@ -94,10 +99,14 @@ int main(int argc, char **av) {
         new (&ind[i]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, curr_shift);
         curr_shift = (curr_shift + node_shift) % (tsp.n - 1);
         ind[i].compute_fitness((void *) &vrp);
+        #ifdef VERBOSE
         ind[i].print_chromosome();
+        #endif
         run_2opt_vrp(&ind[i], &aux_vrp, (void *) &vrp, n_trucks);
+        #ifdef VERBOSE
         std::cout << "2-OPT improved ";
         ind[i].print_chromosome();
+        #endif
     }
         
 
@@ -123,6 +132,9 @@ int main(int argc, char **av) {
     // Allocate edge tables, FIFO queue, table of partitions, and memory pool
     Edge_T<uint64_t> ** e_table = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
     if(e_table == NULL) throw "Could not allocate edges table";
+    // To have it sorted 
+    Edge_T<uint64_t> ** e_table_sorted = (Edge_T<uint64_t> **) std::calloc(2*n_alleles, sizeof(Edge_T<uint64_t> *));
+    if(e_table_sorted == NULL) throw "Could not allocate edges table";
     
     memory_pool * mp = new memory_pool(POOL_SIZE);
     
@@ -139,7 +151,8 @@ int main(int argc, char **av) {
 
     // For all possible combinations 
     
-    std::cout << "N\tPart(s)\tP1\tP2\tO\n";
+    //std::cout << "N\tPart(s)\tP1\tP2\tO\n";
+
     uint64_t recombinations = 0;
     unsigned char * chosen_entries = (unsigned char *) std::malloc(2*n_alleles*sizeof(unsigned char));
     long double * scores_A = (long double *) std::malloc(n_alleles * sizeof(long double));
@@ -185,15 +198,16 @@ int main(int argc, char **av) {
 
 
             // Locate partitions (attempt to find only two parts.)
-            uint64_t node_id, current_label = 0;
+            uint64_t node_id = 0, current_label = 0;
             bool keep_partitioning = true;
             e_table[vrp.depot]->already_tried_to_partitionate = true;
+            //sort_edges_table_lookup(n_alleles, e_table, e_table_sorted);
             do{
                 keep_partitioning = get_highest_node_unpartitioned_ghosted(n_alleles, e_table, &node_id);
                 //keep_partitioning = get_highest_node_unpartitioned(n_alleles, e_table, &node_id);
                 if(keep_partitioning){
-                    find_connected_components_vrp(node_id, current_label, e_table, FIFO_queue, vrp.depot);
-                    current_label++;
+                    if(true == find_connected_components_vrp(node_id, current_label, e_table, FIFO_queue, vrp.depot)) current_label++;
+                    node_id++;
                 }
             }while(keep_partitioning);
 
@@ -203,7 +217,9 @@ int main(int argc, char **av) {
             //uint64_t n_parts = get_number_of_partitions(n_alleles, e_table)+1;
             uint64_t n_parts = get_number_of_partitions_ghosted(n_alleles, e_table)+1;
 
+            #ifdef VERBOSE
             std::cout << "Number of partitions: " << n_parts << std::endl;
+            #endif
             // For good print
             //std::cout << recombinations++ << "\t" << n_parts << "\t";
 
@@ -324,8 +340,9 @@ int main(int argc, char **av) {
             
             
             if(feas_index > 0){
-                std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index;
-                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()) std::cout << "\t*"; 
+                //std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index;
+                if(best_offspring < best_fitness) best_fitness = best_offspring;
+                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()) n_improved_local++; //std::cout << "\t*"; 
 
 
                 // Re-check that they are local optima under 2-opt
@@ -333,7 +350,7 @@ int main(int argc, char **av) {
                 //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
 
             }
-            std::cout << "\n";
+            //std::cout << "\n";
             //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
             
             #ifdef VERBOSE
@@ -354,6 +371,8 @@ int main(int argc, char **av) {
             
         }
     }
+    // best \t capacity \t n_indivs \t n_improved
+    std::cout << best_fitness << "\t" << vrp.capacity << "\t" << n_individuals << "\t" << n_improved_local << "\n";
     /*
 
     // Sort suboptimal tours 
@@ -411,7 +430,7 @@ int main(int argc, char **av) {
 }
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols){
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity){
     
     int pNum = 0;
     while(pNum < argc){
@@ -426,6 +445,7 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
             fprintf(stdout, "           -part       [Integer > 0] def: 1\n");
             fprintf(stdout, "           -mix        [Integer > 0] def: 10000/20\n");
             fprintf(stdout, "           -trucks     [Integer > 0] def: 1\n");
+            fprintf(stdout, "           -capacity   [Double > 0]  def: specified in file\n");
             fprintf(stdout, "           -rsols      [Integer > 0] def: 10\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
@@ -444,6 +464,9 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
         }
         if(strcmp(av[pNum], "-part") == 0){
             *part = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-capacity") == 0){
+            *capacity = (long double) atof(av[pNum+1]);
         }
         if(strcmp(av[pNum], "-rsols") == 0){
             *random_sols = (uint64_t) atoi(av[pNum+1]);

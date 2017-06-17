@@ -1508,16 +1508,17 @@ bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<T> ** e_table, uint
 template <class T>
 bool get_highest_node_unpartitioned_ghosted(uint64_t n_nodes, Edge_T<T> ** e_table, uint64_t * node_id){
     
-    *node_id = 0;
+    //*node_id = 0;
     bool found = false;
-    uint64_t degree = 0;
-    for(uint64_t i=0;i<2*n_nodes;i++){
+    //uint64_t degree = 0;
+    for(uint64_t i=*node_id;i<2*n_nodes;i++){
         if(e_table[i] != NULL && e_table[i]->partition == -1){
-            if(degree < e_table[i]->degree && e_table[i]->already_tried_to_partitionate == false){
-                degree = e_table[i]->degree;
+            if(e_table[i]->already_tried_to_partitionate == false){
+                //degree = e_table[i]->degree;
                 *node_id = i;
-                found = true;
+                //found = true;
                 e_table[i]->already_tried_to_partitionate = true;
+                return true;
             }
         }
     }
@@ -1567,11 +1568,12 @@ void find_connected_components(uint64_t init_node, int64_t partition_label, Edge
 }
 
 template <class T>
-void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, Edge_T<T> ** e_table, std::queue<T> * FIFO_queue, T depot){
+bool find_connected_components_vrp(uint64_t init_node, int64_t partition_label, Edge_T<T> ** e_table, std::queue<T> * FIFO_queue, T depot){
 
     // Add first node
     Edge_T<T> * ptr = NULL;
-    if(e_table[init_node] == NULL) return;
+    bool found_part = false;
+    if(e_table[init_node] == NULL) return found_part;
 
     // Check if at least it has uncommon edges 
     ptr = e_table[init_node]->next;
@@ -1580,7 +1582,7 @@ void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, 
         if(ptr->common == UNCOMMON) count_uncommon++;
         ptr = ptr->next;
     }
-    if(count_uncommon == 0) return;
+    if(count_uncommon == 0) return found_part;
 
     ptr = e_table[init_node]->next;
     e_table[init_node]->partition = partition_label;
@@ -1588,6 +1590,7 @@ void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, 
         if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->node != depot){
             FIFO_queue->push(ptr->node);
             e_table[ptr->node]->partition = partition_label;
+            found_part = true;
         }
         ptr = ptr->next;
     }
@@ -1601,11 +1604,13 @@ void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, 
                 if(e_table[ptr->node] != NULL && e_table[ptr->node]->partition == -1 && ptr->common == UNCOMMON && ptr->node != depot){
                     FIFO_queue->push(ptr->node);
                     e_table[ptr->node]->partition = partition_label;
+                    found_part = true;
                 }
                 ptr = ptr->next;
             }
         }
     }
+    return found_part;
 }
 
 template <class T>
@@ -2702,7 +2707,7 @@ template Pair<Edge_T<uint64_t>> exit_from_entry(Edge_T<uint64_t> ** e_table, Edg
 template bool get_highest_node_unpartitioned(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, uint64_t * node_id);
 template bool get_highest_node_unpartitioned_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, uint64_t * node_id);
 template void find_connected_components(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue);
-template void find_connected_components_vrp(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue, uint64_t depot);
+template bool find_connected_components_vrp(uint64_t init_node, int64_t partition_label, Edge_T<uint64_t> ** e_table, std::queue<uint64_t> * FIFO_queue, uint64_t depot);
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes, optimal_path<Chromo_TSP<uint64_t>> * best_paths, Chromosome<uint64_t> * A, Chromosome<uint64_t> * B);

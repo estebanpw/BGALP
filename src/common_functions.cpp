@@ -143,6 +143,32 @@ int compare_alpha_petals(const void * p1, const void * p2){
     if( ((DPair<uint64_t, long double> *) p1)->_e2 <= ((DPair<uint64_t, long double> *) p2)->_e2 ) return -1; else return 1;
 }
 
+int compare_edges_degree(const void * p1, const void * p2){
+    if(((Edge_T<uint64_t> *)p1) == NULL) return 1;
+    if(((Edge_T<uint64_t> *)p2) == NULL) return -1;
+    if(((Edge_T<uint64_t> *)p1)->degree > ((Edge_T<uint64_t> *)p2)->degree) return -1;
+    if(((Edge_T<uint64_t> *)p1)->degree == ((Edge_T<uint64_t> *)p2)->degree) return 0;
+    return 1;
+}
+
+template <class T>
+void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<T> ** e_table, Edge_T<T> ** e_table_sorted){
+    // Copy all references 
+    memcpy(e_table_sorted, e_table, 2*n_nodes*sizeof(Edge_T<T> *));
+    // Sort them 
+    qsort((void *) &e_table_sorted[0], 2*n_nodes, sizeof(Edge_T<T> *), &compare_edges_degree);
+
+    #ifdef VERBOSE
+
+    for(uint64_t i=0; i<2*n_nodes; i++){
+        if(e_table_sorted[i] != NULL) std::cout << "Node " << i << " -> " << e_table_sorted[i]->degree << "\n";
+    }
+    getchar();
+
+    #endif 
+
+}
+
 template <class T>
 void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     /*
@@ -183,11 +209,12 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     // Sort by angle and then just generate the solution from a random point in order while capacity constrains hold
     qsort((void *) &alpha_sorted_table[0], vrp->n - 1, sizeof(DPair<uint64_t, long double>), &compare_alpha_petals);
 
-
+    #ifdef VERBOSE
     std::cout << "Take shifted node: " << node_shift << std::endl;
     for(uint64_t i=0; i<vrp->n-1; i++){
         std::cout << i << ": " << alpha_sorted_table[i]._e1 << " -> " << alpha_sorted_table[i]._e2 << std::endl;
     }
+    #endif
 
     /*
     struct Sol_VRP_matrix{
@@ -210,7 +237,9 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     while(allele_tracker < vrp->n - 1){
         
         if(current_cap + vrp->demands[alpha_sorted_table[take_shifted_node]._e1] > vrp->capacity){
+            #ifdef VERBOSE
             std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
+            #endif
             c[i_in_chromo] = vrp->depot;
             n_trucks++;
             current_cap = 0;
@@ -239,4 +268,5 @@ template void print_edge_tables_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_
 template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
 template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
+template void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Edge_T<uint64_t> ** e_table_sorted);
 template void generate_petals_from_points(uint64_t * c, void * sol_VRP, uint64_t node_shift);
