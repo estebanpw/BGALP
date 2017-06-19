@@ -234,7 +234,9 @@ int main(int argc, char **av) {
             
             shorten_common_tours_ghosted(e_table, n_alleles); // TODO does this one need to be changed?
 
-
+            #ifdef VERBOSE
+            std::cout << "Shoretned tours \n";
+            #endif
             
 
             // Mark entries and exists to tell if a multipartitioning approach is feasible
@@ -354,7 +356,7 @@ int main(int argc, char **av) {
             //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
             
             #ifdef VERBOSE
-            getchar();
+            //getchar();
             #endif
             
             continue;

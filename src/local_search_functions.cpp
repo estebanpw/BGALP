@@ -23,17 +23,24 @@ void _2optSwap(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chro
 void _2optSwap_VRP(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom, uint64_t i, uint64_t k, uint64_t stop){
         
     // Take route 1 to i and add in order
+    /*
+       1. take route[1] to route[i-1] and add them in order to new_route
+       2. take route[i] to route[k] and add them in reverse order to new_route
+       3. take route[k+1] to end and add them in order to new_route
+    */
     uint64_t t, backward_pos;
-    for(t=0;t<i;t++){
+    for(t=0;t<=i;t++){
         two_opt_chrom->set_allele(t, route->get_allele(t));
     }
     // Take route i to k and add reversed
-    for(t=i;t<k+1;t++){
-        backward_pos = k-(t-i);
-        two_opt_chrom->set_allele(t, route->get_allele(backward_pos));
+    backward_pos = i+1;
+    for(t=k-1;t>i;t--){
+        
+        two_opt_chrom->set_allele(backward_pos, route->get_allele(t));
+        backward_pos++;
     }
     // Take route k to end and add in order
-    for(t=k+1;t<stop;t++){
+    for(t=k;t<stop;t++){
         two_opt_chrom->set_allele(t, route->get_allele(t));
     }
 }
@@ -84,24 +91,30 @@ void run_2opt(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom
 
 void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_chrom, void * solution_info, uint64_t n_trucks){
 
-    uint64_t i, k;
+    uint64_t i, k, j;
     Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) solution_info;
     
+    for(j=0;j<route->get_length();j++){
+        two_opt_chrom->set_allele(j, route->get_allele(j));
+    }
 
+    two_opt_chrom->compute_fitness(vrp);
     
     //uint64_t improve = 0;
     long double best_distance = LDBL_MAX;
     // To separate 2-OPT per chromosome 
     uint64_t stops[n_trucks];
     uint64_t index = 1;
-    stops[0] = 1;
+    stops[0] = 0;
     for(i = 0; i< route->get_length(); i++){
         if(*route->get_allele(i) == 0){
             stops[index++] = i;
             //std::cout << "stopping at " << i << std::endl; getchar();
         }
     }
+    stops[index] = route->get_length();
 
+    //45, 22, 50, 32, 4, 76, 72, 66, 0, 67, 70, 36, 54, 9, 53, 55, 33, 15, 64, 0, 42, 56, 69, 65, 35, 26, 47, 77, 51, 41, 39, 46, 0, 25, 60, 3, 19, 31, 74, 0, 17, 75, 20, 57, 29, 13, 27, 0, 59, 61, 16, 5, 43, 78, 68, 44, 12, 0, 30, 23, 6, 8, 24, 62, 37, 0, 2, 34, 11, 63, 1, 52, 0, 79, 28, 7, 71, 48, 0, 18, 10, 14, 21, 40, 49, 38, 0, 58, 73
 
     for(uint64_t stop_idx = 0; stop_idx < index-1; stop_idx++){
 
@@ -113,19 +126,21 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
             start_again:
 
             best_distance = *route->get_fitness();
-            for(i = stops[stop_idx]; i < stops[stop_idx+1] - 2; i++){
-                if(*route->get_allele(i) == 0) continue;
+            for(i = stops[stop_idx]; i < stops[stop_idx+1]; i++){
+                
+                //if(*route->get_allele(i) == 0) continue;
 
-                for(k = i + 1; k < stops[stop_idx+1]-1; k++){
-                    _2optSwap_VRP(route, two_opt_chrom, i, k, stops[stop_idx+1]-1);
+                for(k = i + 1; k <= stops[stop_idx+1]; k++){
+                    //std::cout << "Trying " << i << " , " << k << "\n"; getchar();
+                    _2optSwap_VRP(route, two_opt_chrom, i, k, stops[stop_idx+1]);
                     two_opt_chrom->compute_fitness(vrp);
                     if (*two_opt_chrom->get_fitness() < best_distance){
 
                         //fprintf(stdout, "Improved at %" PRIu64", %" PRIu64" which is (%"PRIu64", %"PRIu64"\n", i, k, *route->get_allele(i), *route->get_allele(k));
                         
 
-                        for(i=stops[stop_idx];i<stops[stop_idx+1]-1;i++){
-                            route->set_allele(i, two_opt_chrom->get_allele(i));
+                        for(j=stops[stop_idx];j<=stops[stop_idx+1];j++){
+                            route->set_allele(j, two_opt_chrom->get_allele(j));
                         }
                         route->set_fitness(*two_opt_chrom->get_fitness());
                         
@@ -138,6 +153,12 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
 
                         // deactivate this for less complexity
                         goto start_again;
+                    }else{
+                       for(j=0;j<route->get_length();j++){
+                            two_opt_chrom->set_allele(j, route->get_allele(j));
+                       }
+                       two_opt_chrom->compute_fitness(vrp);
+
                     }
                 }
             }

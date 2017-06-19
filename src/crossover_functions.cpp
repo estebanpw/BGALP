@@ -599,7 +599,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
     }
 
     #ifdef VERBOSE
-    getchar();
+    //getchar();
     #endif
 
     for(uint64_t i=0;i<n_partitions;i++){ part_indexes[i] = 0; }
@@ -687,7 +687,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
 
             #ifdef VERBOSE
             std::cout << "\n";
-            getchar();
+            //getchar();
             #endif
             
             
@@ -786,7 +786,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
         }
         #ifdef VERBOSE
         std::cout << "Partition " << i << " is feasible!" << std::endl;
-        getchar();
+        //getchar();
         #endif
 
         out_of_part:
@@ -869,7 +869,7 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
     }
 
     #ifdef VERBOSE
-    getchar();
+    //getchar();
     #endif
 
     for(uint64_t i=0;i<n_partitions;i++){ part_indexes[i] = 0; }
@@ -957,7 +957,7 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
 
             #ifdef VERBOSE
             std::cout << "\n";
-            getchar();
+            //getchar();
             #endif
             
             
@@ -1031,7 +1031,7 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
         }
         #ifdef VERBOSE
         std::cout << "Partition " << i << " is feasible!" << std::endl;
-        getchar();
+        //getchar();
         #endif
 
         out_of_part:
@@ -1636,7 +1636,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
             ptr = ptr->next;
         }
         
-        if(ptr != NULL && ptr->node != last_replaced->node){
+        if(ptr != NULL && ptr->node != last_replaced->node && ptr->node != 0){
             
             // If it has already been used, abort 
             if(e_table[master_node]->already_surrogate){
@@ -1652,6 +1652,7 @@ Pair<Edge_T<T>> replace_surrogate_by_one(Edge_T<T> ** e_table, uint64_t i){
             master_node = ptr->node;
             route_end = e_table[ptr->node];
             
+            //std::cout << "Pushing " << ptr->node << ", \n";
             FIFO_queue.push(e_table[ptr->node]);
             if(route_end->partition != -1 && route_start->partition != route_end->partition) goto finish;
 
@@ -1940,7 +1941,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_vrp(Edge_T<T> ** e_table, uint
             if(ptr != NULL && ptr->node == depot) goto finish;
         }
         
-        if(ptr != NULL && ptr->node != last_replaced->node){
+        if(ptr != NULL && ptr->node != last_replaced->node && ptr->node != depot){
             
         
             // Update previous so we wont traverse it again 

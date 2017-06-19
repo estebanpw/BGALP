@@ -217,7 +217,8 @@ void Chromo_VRP<T>::verify_chromosome(char * step){
         verification[this->chromosome[i]]++;
     }
     for(uint64_t i=0;i<this->length;i++){
-        if(verification[i] != 1 && i != 0 && i < 80){
+        if(verification[i] != 1 && i != 0 && i < 459){
+            this->print_chromosome();
             std::cout << "Found error at " << i << " at " << step << " having " << verification[i] << std::endl;
             throw "Aborting";
         }

@@ -163,7 +163,7 @@ void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<T> ** e_table, Edge_T<T> *
     for(uint64_t i=0; i<2*n_nodes; i++){
         if(e_table_sorted[i] != NULL) std::cout << "Node " << i << " -> " << e_table_sorted[i]->degree << "\n";
     }
-    getchar();
+    //getchar();
 
     #endif 
 
