@@ -1802,7 +1802,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_t
                 // Update previous so we wont traverse it again 
             
                 #ifdef VERBOSE
-                std::cout<< ptr->node << ", ";
+                std::cout << ((ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node)) << ", ";
                 #endif
                 last_replaced = e_table[master_node];
                 master_node = ptr->node;
@@ -1811,10 +1811,25 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_t
                 // If its a ghost edge, convert 
                 *score += (long double) tsp->dist[(last_replaced->node >= n_nodes) ? (last_replaced->node - n_nodes) : (last_replaced->node)][(ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node)];
 
-                if(ptr->node == depot) goto finish; // Break path if there is a depot
+                if(ptr->node == depot){ 
+                    #ifdef VERBOSE
+                    std::cout << *score << std::endl; 
+                    #endif
+                    goto finish; 
+                } // Break path if there is a depot
 
-                if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) goto finish; 
-                if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) goto finish; 
+                if(CIRCUIT == CIRCUIT_A && route_end->is_exit_cycle_A) { 
+                    #ifdef VERBOSE
+                    std::cout << *score << std::endl; 
+                    #endif
+                    goto finish; 
+                } 
+                if(CIRCUIT == CIRCUIT_B && route_end->is_exit_cycle_B) { 
+                    #ifdef VERBOSE
+                    std::cout << *score << std::endl; 
+                    #endif
+                    goto finish; 
+                }
 
                 // Not null implies we found common edge 
                 // Save this node as last and look for more 

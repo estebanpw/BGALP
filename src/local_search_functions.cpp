@@ -144,7 +144,7 @@ void run_2opt_vrp(Chromosome<uint64_t> * route, Chromosome<uint64_t> * two_opt_c
                         }
                         route->set_fitness(*two_opt_chrom->get_fitness());
                         
-                        route->verify_chromosome(" 2opt ");
+                        //route->verify_chromosome(" 2opt ");
 
                         //route->print_chromosome();
                         //getchar();

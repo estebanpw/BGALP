@@ -30,7 +30,7 @@ int DEBUG_ACTIVE = 0;
 */
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity);
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity, uint64_t * node_shift);
 
 int main(int argc, char **av) {
 
@@ -48,6 +48,9 @@ int main(int argc, char **av) {
     // Number of trucks for the VRP
     uint64_t n_trucks = 30; // 1 is a TSP
 
+    // Shifts in the petal algorithm 
+    uint64_t node_shift = 0;
+
     // TSP structure
     Sol_VRP_matrix vrp;
     Sol_TSP_matrix tsp;
@@ -57,7 +60,7 @@ int main(int argc, char **av) {
 
     // Init arguments
     vrp.capacity = 0;
-    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols, &vrp.capacity);
+    init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols, &vrp.capacity, &node_shift);
     long double temp_capacity = vrp.capacity;
     mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
@@ -91,7 +94,7 @@ int main(int argc, char **av) {
     
     Chromo_VRP<uint64_t> * ind = (Chromo_VRP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_VRP<uint64_t>));
     Chromo_VRP<uint64_t> aux_vrp(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, 0);
-    uint64_t node_shift = max((uint64_t)1, n_alleles/n_individuals);
+    if(node_shift == 0) node_shift = max((uint64_t)1, n_alleles/n_individuals);
     uint64_t curr_shift = 0;
     if(ind == NULL) throw "Could not allocate individuals";
     for(uint64_t i=0;i<n_individuals;i++){
@@ -344,19 +347,20 @@ int main(int argc, char **av) {
             if(feas_index > 0){
                 //std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index;
                 if(best_offspring < best_fitness) best_fitness = best_offspring;
-                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()) n_improved_local++; //std::cout << "\t*"; 
+                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()){ n_improved_local++; /* std::cout << "\t*"; */} 
+                else { /*std::cout << "\tº";*/ }
 
 
                 // Re-check that they are local optima under 2-opt
                 //build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
                 //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
-
+                //std::cout << "\n";
             }
-            //std::cout << "\n";
+            
             //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
             
             #ifdef VERBOSE
-            //getchar();
+            getchar();
             #endif
             
             continue;
@@ -374,7 +378,7 @@ int main(int argc, char **av) {
         }
     }
     // best \t capacity \t n_indivs \t n_improved
-    std::cout << best_fitness << "\t" << vrp.capacity << "\t" << n_individuals << "\t" << n_improved_local << "\n";
+    std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\n";
     /*
 
     // Sort suboptimal tours 
@@ -432,7 +436,7 @@ int main(int argc, char **av) {
 }
 
 
-void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity){
+void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t * n_individuals, uint64_t * part, uint64_t * mix_every, uint64_t * n_trucks, uint64_t * random_sols, long double * capacity, uint64_t * node_shift){
     
     int pNum = 0;
     while(pNum < argc){
@@ -448,6 +452,7 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
             fprintf(stdout, "           -mix        [Integer > 0] def: 10000/20\n");
             fprintf(stdout, "           -trucks     [Integer > 0] def: 1\n");
             fprintf(stdout, "           -capacity   [Double > 0]  def: specified in file\n");
+            fprintf(stdout, "           -shift      [Integer > 0] def: dynamic\n");
             fprintf(stdout, "           -rsols      [Integer > 0] def: 10\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
@@ -466,6 +471,9 @@ void init_args(int argc, char ** av, char * data, uint64_t * n_itera, uint64_t *
         }
         if(strcmp(av[pNum], "-part") == 0){
             *part = (uint64_t) atoi(av[pNum+1]);
+        }
+        if(strcmp(av[pNum], "-shift") == 0){
+            *node_shift = (uint64_t) atoi(av[pNum+1]);
         }
         if(strcmp(av[pNum], "-capacity") == 0){
             *capacity = (long double) atof(av[pNum+1]);

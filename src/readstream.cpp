@@ -161,11 +161,19 @@ void reading_function_VRP(FILE * input, void * type_structure){
         }
     }
 
+
+    
     // Add demands
     while(!feof(input) && fgets(buffer, MAX_LINE, input) != 0){
         if(strncmp(buffer, "DEPOT_SECTION", 13) == 0) break;
         if(2 == sscanf(buffer, "%lu %Le", &id, &x)){
             vrp_mat->demands[id-1] = x;
+            /*
+            #ifdef VERBOSE
+            std::cout << vrp_mat->demands[id-1] << std::endl;
+            getchar();
+            #endif
+            */
         }
     }
 
