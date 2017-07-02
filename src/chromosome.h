@@ -23,6 +23,7 @@ class Chromosome{
 
 protected:
     T * chromosome;
+    uint64_t * lookup;
     uint64_t length;
     long double fitness;
     Position position;
@@ -79,6 +80,10 @@ public:
     Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP, uint64_t node_shift);
     void compute_fitness(void * solution_info);
     void verify_chromosome(char * step);
+    void add_lookup();
+    void set_lookup(T v, uint64_t p){ this->lookup[v] = p; }
+    uint64_t get_lookup(T v){ return this->lookup[v]; }
+
 };
 
 template <class T>

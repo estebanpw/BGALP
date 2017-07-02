@@ -63,13 +63,13 @@ template <class T>
 Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes);
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, T depot);
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, T depot, uint64_t * check);
 
 template <class T>
 Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, optimal_path<Chromo_TSP<T>> * best_paths, Chromosome<T> * A, Chromosome<T> * B);
 
 template <class T>
-Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, Chromosome<T> * A, Chromosome<T> * B, T depot);
+Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, Chromo_VRP<T> * A, Chromo_VRP<T> * B, T depot, Chromo_VRP<T> * offspring, void * vrp, uint64_t * t_recomb);
 
 template <class T>
 void add_ghost_vertices(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool * mp);

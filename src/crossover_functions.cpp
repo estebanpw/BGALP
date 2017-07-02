@@ -815,7 +815,7 @@ Feasible<T> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<T>
 }
 
 template <class T>
-Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, Chromosome<T> * A, Chromosome<T> * B, T depot){
+Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<T> *> * entries_A, std::queue<Edge_T<T> *> * entries_B, std::queue<Edge_T<T> *> * exits_A, std::queue<Edge_T<T> *> * exits_B, memory_pool * mp, Edge_T<T> ** e_table, void * tsp, uint64_t n_nodes, Chromo_VRP<T> * A, Chromo_VRP<T> * B, T depot, Chromo_VRP<T> * offspring, void * vrp, uint64_t * t_recomb){
     
     std::queue<Edge_T<T> *> aux_queue;
     Feasible<T> feasible; 
@@ -913,6 +913,11 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
     // Go through all 
     uint64_t j;
     long double score;
+
+    // To count that no disoverlapping set of nodes produces an invalid recombination
+    uint64_t check_A[A->get_length()];
+    uint64_t check_B[B->get_length()];
+
     for(uint64_t i=0;i<n_partitions;i++){
         // If different number of entries, deactivate partition
         
@@ -925,6 +930,10 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
         
         for(j = 0; j<feasible.n_entries[i]; j++){
 
+            
+            memset(check_A, 0x0, A->get_length()*sizeof(uint64_t));
+            memset(check_B, 0x0, B->get_length()*sizeof(uint64_t));
+
             #ifdef VERBOSE
             std::cout << i << " - " << j << std::endl;
             std::cout << "(A) " << parts_A[i][j].entry->node << ", " << parts_A[i][j].entry->partition << " ends in ";
@@ -933,7 +942,7 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
             uint64_t length_A, length_B;
 
             score = 0;
-            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited_vrp(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A, tsp, &score, n_nodes, depot);
+            Pair<Edge_T<T>> pA = abstract_replace_surrogate_by_one_circuited_vrp(e_table, parts_A[i][j].entry->node, CIRCUIT_A, &length_A, tsp, &score, n_nodes, depot, check_A);
             parts_A[i][j].score = score;
             
             #ifdef VERBOSE
@@ -952,7 +961,7 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
             #endif
             
             score = 0;
-            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited_vrp(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B, tsp, &score, n_nodes, depot);
+            Pair<Edge_T<T>> pB = abstract_replace_surrogate_by_one_circuited_vrp(e_table, parts_B[i][j].entry->node, CIRCUIT_B, &length_B, tsp, &score, n_nodes, depot, check_B);
             parts_B[i][j].score = score;
 
             #ifdef VERBOSE
@@ -975,6 +984,23 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
                 parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
             }
 
+            #ifdef VERBOSE
+            std::cout << "insiders " << "\n";
+            for(uint64_t w=0; w<length_A; w++){
+                std::cout << "(" << check_A[w] <<" "  << check_B[check_A[w]] << ")"; 
+            }
+            #endif
+
+            for(uint64_t w=0; w<length_A; w++){
+                if(check_B[check_A[w]] != 1){
+                    #ifdef VERBOSE
+                    std::cout << "the insides differ " << check_A[w] <<" "  << check_B[check_A[w]] << "\n"; 
+                    //getchar();
+                    #endif
+                    parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
+                }
+            }
+
             // If exiting vertices are different this partition is not feasible
             //if(pA._e2->node != pB._e2->node && pA._e2->node != pB._e1->node || (pA._e1->node == pB._e1 || pA._e1->node == pB._e2) ){ 
             if((pA._e1 != pB._e1 && pA._e1 != pB._e2) || (pA._e2 != pB._e1 && pA._e2 != pB._e2)){
@@ -983,6 +1009,8 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
                 #endif
                 parts_A[i] = NULL; parts_B[i] = NULL; goto out_of_part; 
             }else{
+
+                *t_recomb = (*t_recomb + 1);
                 
                 parts_A[i][j].exit = pA._e2;
                 parts_B[i][j].exit = pB._e2;
@@ -992,10 +1020,12 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
                     // They are reversed 
 
                     // USE ONLY FOR SYMMETRIC TSP 
+                    //printf("i got one\n");
                     
                     parts_B[i][j].reverse = true;
                     #ifdef VERBOSE
                     std::cout << "reversed to: " << pB._e1->node << "; " << pB._e2->node << "\n"; 
+                    getchar();
                     #endif
                     
                     // FOR ASYMMETRIC
@@ -1023,6 +1053,139 @@ Feasible<T> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_
                         @0 -> 22 has 43.2134::veri:4
                             ->22, 45, 
                     */
+
+                    
+                    if(parts_A[i][j].score <= parts_B[i][j].score){
+                        uint64_t c_node = (parts_A[i][j].entry->node >= n_nodes) ? (parts_A[i][j].entry->node - n_nodes) : (parts_A[i][j].entry->node);
+                        //std::cout << "indexA: " << best_paths->indexes[c_node] << std::endl;
+                        
+
+                        //std::cout << "copying from " << c_node <<  "length A: " << length_A << "\n";
+                        uint64_t pos_index_A = A->get_lookup((T) c_node);
+                        uint64_t pos_index_O = offspring->get_lookup((T) c_node);
+                        //std::cout << "init A " << pos_index_A <<  "init O " << pos_index_O << "\n";
+                        for(uint64_t z = 0; z < length_A; z++){
+                            
+                            //If offspring is currently A
+                            if(offspring == A){
+                                //Case copy from A to A ... no need to do anything.
+                                
+                            }else{
+                                //Offspring is currently B
+                                //Case copy from A to B and entryA == exitB
+
+                                offspring->set_allele(pos_index_O, A->get_allele(pos_index_A));
+
+                                pos_index_A = (pos_index_A + 1) % A->get_length(); 
+
+                                if(pos_index_O == 0) pos_index_O = offspring->get_length() -1;  
+                                else
+                                pos_index_O = (pos_index_O - 1) % offspring->get_length(); 
+                            }
+                            
+                        }
+                        //std::cout << "Before  " << *A->get_fitness() <<  "\n ";
+                        //offspring->compute_fitness(vrp);
+                        //std::cout << "Before  " << *offspring->get_fitness() <<  "\n ";
+                        
+
+                    }else{
+                        // thsi ischanged to parts_A on purpose!
+                        uint64_t c_node = (parts_A[i][j].entry->node >= n_nodes) ? (parts_A[i][j].entry->node - n_nodes) : (parts_A[i][j].entry->node);
+                        //std::cout << "indexB: " << best_paths->indexes[c_node] << std::endl;
+                        
+                        //std::cout << "copying from " << c_node <<  "length A: " << length_A << "\n";
+                        uint64_t pos_index_B = B->get_lookup((T) c_node);
+                        uint64_t pos_index_O = offspring->get_lookup((T) c_node);
+                        //std::cout << "init B " << pos_index_B <<  "init O " << pos_index_O << "\n";
+                        for(uint64_t z = 0; z < length_B; z++){
+                            
+                            
+                            if(offspring == A){
+                                //Case copy from B to A and entryA == exitB
+                                //std::cout << "copying " << *B->get_allele(pos_index_B) << " to " << *offspring->get_allele(pos_index_O) << "\n";
+                                
+                                offspring->set_allele(pos_index_O, B->get_allele(pos_index_B));
+
+                                pos_index_O = (pos_index_O + 1) % offspring->get_length();
+                                //pos_index_B = (pos_index_B + 1) % B->get_length();
+                                
+                                if(pos_index_B == 0) pos_index_B = B->get_length()-1;
+                                else 
+                                pos_index_B = (pos_index_B - 1) % B->get_length(); 
+                                
+                                
+
+                            }else{
+                                //Offspring is currently B
+                                //Case copy from B to B and B is reversed
+                                // no need to do anything
+                                
+                            }
+                        }
+                        
+                        //std::cout << "Before  " << *B->get_fitness() <<  "\n ";
+                        //offspring->compute_fitness(vrp);
+                        //std::cout << "Before  " << *offspring->get_fitness() <<  "\n ";
+                        
+
+                    }
+                    //offspring->verify_chromosome("After reversed");
+                    offspring->add_lookup();
+
+                    //getchar();
+                    
+
+
+
+
+
+
+                }else{
+                    // Generate table of optimal paths
+                    if(parts_A[i][j].score <= parts_B[i][j].score){
+                        uint64_t c_node = (parts_A[i][j].entry->node >= n_nodes) ? (parts_A[i][j].entry->node - n_nodes) : (parts_A[i][j].entry->node);
+                        //std::cout << "indexA: " << best_paths->indexes[c_node] << std::endl;
+                        
+
+                        //std::cout << "copying from " << c_node <<  "length A: " << length_A << "\n";
+                        uint64_t pos_index_A = A->get_lookup((T) c_node);
+                        uint64_t pos_index_O = offspring->get_lookup((T) c_node);
+                        //std::cout << "init A " << pos_index_A <<  "init O " << pos_index_O << "\n";
+                        for(uint64_t z = 0; z < length_A; z++){
+                            offspring->set_allele(pos_index_O, A->get_allele(pos_index_A));
+                            pos_index_A = (pos_index_A + 1) % A->get_length(); 
+                            pos_index_O = (pos_index_O + 1) % offspring->get_length(); 
+                        }
+                        //std::cout << "Before  " << *A->get_fitness() <<  "\n ";
+                        //offspring->compute_fitness(vrp);
+                        //std::cout << "Before  " << *offspring->get_fitness() <<  "\n ";
+                        
+
+                    }else{
+                        uint64_t c_node = (parts_B[i][j].entry->node >= n_nodes) ? (parts_B[i][j].entry->node - n_nodes) : (parts_B[i][j].entry->node);
+                        //std::cout << "indexB: " << best_paths->indexes[c_node] << std::endl;
+                        
+                        //std::cout << "copying from " << c_node <<  "length A: " << length_A << "\n";
+                        uint64_t pos_index_B = B->get_lookup((T) c_node);
+                        uint64_t pos_index_O = offspring->get_lookup((T) c_node);
+                        //std::cout << "init B " << pos_index_B <<  "init O " << pos_index_O << "\n";
+                        for(uint64_t z = 0; z < length_B; z++){
+                            offspring->set_allele(pos_index_O, B->get_allele(pos_index_B));
+                            pos_index_B = (pos_index_B + 1) % B->get_length(); 
+                            pos_index_O = (pos_index_O + 1) % offspring->get_length(); 
+                        }
+                        
+                        //std::cout << "Before  " << *B->get_fitness() <<  "\n ";
+                        //offspring->compute_fitness(vrp);
+                        //std::cout << "Before  " << *offspring->get_fitness() <<  "\n ";
+                        
+
+                    }
+                    offspring->add_lookup();
+
+                    //getchar();
+                    
 
                 }
                 
@@ -1280,7 +1443,7 @@ void add_ghost_vertices_vrp(uint64_t n_nodes, Edge_T<T> ** e_table, memory_pool 
     Edge_T<T> * b, * c, * d, * e;
     
     for(i=0;i<n_nodes;i++){
-        if(e_table[i]->degree == 4 && i != depot_id){
+        if(e_table[i] != NULL && e_table[i]->degree == 4 && i != depot_id){
             // Found a vertex with degree 4, split it and add a ghost vertex
 
             // Make the connections i.e. if we have: 
@@ -1771,18 +1934,24 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited(Edge_T<T> ** e_table
 
 
 template <class T>
-Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, T depot){
+Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, T depot, uint64_t * check){
 
     Edge_T<T> * ptr, * last_replaced, * route_start, * route_end;
     Pair<Edge_T<T>> surrogate; surrogate._e1 = NULL; surrogate._e2 = NULL;
     
     // Extend in both directions until one node with degree > 2 is found
     uint64_t master_node = i;
+    uint64_t check_i = 0;
     Sol_TSP_matrix * tsp = (Sol_TSP_matrix *) sol;
     route_start = e_table[i];
-    *length = 0;
+    *length = 1;
     route_end = NULL;
     last_replaced = e_table[i];
+    if(CIRCUIT == CIRCUIT_A){
+        check[check_i++] = ((i >= n_nodes) ? (i - n_nodes) : (i));
+    }else{
+        check[((i >= n_nodes) ? (i - n_nodes) : (i))] = 1;
+    }
     //printf("%" PRId64", ", e_table[last_replaced->node]->partition);
     ptr = e_table[i]->next;
 
@@ -1809,7 +1978,18 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_t
                 route_end = e_table[ptr->node];
 
                 // If its a ghost edge, convert 
+                if(ptr->node < n_nodes && CIRCUIT == CIRCUIT_A){
+                    check[check_i++] = ((ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node));
+                }else{
+                    check[((ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node))] = 1;
+                }
                 *score += (long double) tsp->dist[(last_replaced->node >= n_nodes) ? (last_replaced->node - n_nodes) : (last_replaced->node)][(ptr->node >= n_nodes) ? (ptr->node - n_nodes) : (ptr->node)];
+
+                if(ptr->node < n_nodes){
+                    (*length)++; // Avoid extra len because of ghost
+                }
+
+                
 
                 if(ptr->node == depot){ 
                     #ifdef VERBOSE
@@ -1838,7 +2018,7 @@ Pair<Edge_T<T>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<T> ** e_t
                 //std::cout << "SSSSSSSSSSSs " << last_replaced->node << "\t" << ptr->node << std::endl;
                 
 
-                (*length)++;
+                
                 ptr = e_table[ptr->node]->next;
                 
             }else{
@@ -2727,11 +2907,11 @@ template bool find_connected_components_vrp(uint64_t init_node, int64_t partitio
 template bool is_connected_to(Edge_T<uint64_t> ** e_table, uint64_t node_1, uint64_t node_2);
 template void find_surrogate_edge_that_partitionates(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Quartet<Edge_T<uint64_t>> * surrogates);
 template Feasible<uint64_t> verify_entries_and_exits(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes, optimal_path<Chromo_TSP<uint64_t>> * best_paths, Chromosome<uint64_t> * A, Chromosome<uint64_t> * B);
-template Feasible<uint64_t> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes, Chromosome<uint64_t> * A, Chromosome<uint64_t> * B, uint64_t depot);
+template Feasible<uint64_t> verify_entries_and_exits_vrp(uint64_t n_partitions, std::queue<Edge_T<uint64_t> *> * entries_A, std::queue<Edge_T<uint64_t> *> * entries_B, std::queue<Edge_T<uint64_t> *> * exits_A, std::queue<Edge_T<uint64_t> *> * exits_B, memory_pool * mp, Edge_T<uint64_t> ** e_table, void * tsp, uint64_t n_nodes, Chromo_VRP<uint64_t> * A, Chromo_VRP<uint64_t> * B, uint64_t depot,  Chromo_VRP<uint64_t> * offspring, void * vrp, uint64_t * t_recomb);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_vrp(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t depot);
 template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes);
-template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, uint64_t depot);
+template Pair<Edge_T<uint64_t>> abstract_replace_surrogate_by_one_circuited_vrp(Edge_T<uint64_t> ** e_table, uint64_t i, uint64_t CIRCUIT, uint64_t * length, void * sol, long double * score, uint64_t n_nodes, uint64_t depot, uint64_t * check);
 template Pair<Edge_T<uint64_t>> replace_surrogate_by_one(Edge_T<uint64_t> ** e_table, uint64_t i);
 template void generate_partitions(PXTable<uint64_t> * px_table, Edge_T<uint64_t> ** e_table, uint64_t n_nodes, memory_pool * mp);
 template void shorten_common_tours_ghosted(Edge_T<uint64_t> ** e_table, uint64_t n_nodes);

@@ -157,6 +157,7 @@ void Chromo_TSP<T>::verify_chromosome(char * step){
 template <class T>
 Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capacity, T depot, Position p, INITIALIZER init_type, std::default_random_engine * g, std::uniform_int_distribution<uint64_t> * u_d, void * sol_VRP, uint64_t node_shift){
     this->chromosome = (T *) std::calloc(alleles, sizeof(T));
+    this->lookup = (uint64_t *) std::calloc(alleles, sizeof(uint64_t));
     if(this->chromosome == NULL) throw "Could not allocate chromosome";
     this->length = alleles;
     this->fitness = LDBL_MAX;
@@ -174,7 +175,29 @@ Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capac
         generate_petals_from_points(this->chromosome, sol_VRP, node_shift);
     }
     
+    
         
+}
+
+
+template <class T>
+void Chromo_VRP<T>::add_lookup(){
+    // Add lookup
+    for(uint64_t i=0; i<this->length; i++){
+        
+        //std::cout << "I have value " << this->chromosome[i] << " going to " <<  i <<  "\n"; 
+        //getchar();
+        this->lookup[(uint64_t) this->chromosome[i]] = i;
+
+
+    }
+    /*
+    for(uint64_t i=0; i<this->length; i++){
+        std::cout << " " << (uint64_t) this->chromosome[i] << "@" << i;
+    }
+    std::cout<<"\n";
+    getchar();
+    */
 }
 
 
@@ -217,7 +240,7 @@ void Chromo_VRP<T>::verify_chromosome(char * step){
         verification[this->chromosome[i]]++;
     }
     for(uint64_t i=0;i<this->length;i++){
-        if(verification[i] != 1 && i != 0 && i < 459){
+        if(verification[i] != 1 && i != 0 && i < 150){
             this->print_chromosome();
             std::cout << "Found error at " << i << " at " << step << " having " << verification[i] << std::endl;
             throw "Aborting";

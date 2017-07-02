@@ -79,7 +79,7 @@ int main(int argc, char **av) {
     uint64_t n_alleles_vrp = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
     uint64_t n_alleles = tsp.n;
     long double best_fitness = DBL_MAX;
-    uint64_t n_improved_local = 0, feasible_local = 0;
+    uint64_t n_improved_local = 0, feasible_local = 0, n_2opt_local = 0, strictly_improved = 0;
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
@@ -164,8 +164,10 @@ int main(int argc, char **av) {
     long double * scores_B = (long double *) std::malloc(n_alleles * sizeof(long double));
     if(chosen_entries == 0x0 || scores_A == 0x0 || scores_B == 0x0) throw "Could not allocate scores for A and B subtours";
 
+    
     for(uint64_t i=0;i<random_sols;i++){
         for(uint64_t j=i+1;j<random_sols;j++){
+    
             // Restart memory pool, FIFO queue and Edge table
             mp->full_reset();
             while(!FIFO_queue->empty()) FIFO_queue->pop();
@@ -175,6 +177,9 @@ int main(int argc, char **av) {
             memset(&scores_B[0], (long double) 0, n_alleles);
 
             // Fill edge table for two random solutions
+            ind[i].add_lookup();
+            ind[j].add_lookup();
+
             fill_edge_table_vrp(&ind[i], e_table, mp, CIRCUIT_A, vrp.depot);
             fill_edge_table_vrp(&ind[j], e_table, mp, CIRCUIT_B, vrp.depot);
             
@@ -268,9 +273,45 @@ int main(int argc, char **av) {
             // Verify that all entries conduct to the same exit 
             //Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &best_paths, &ind[i], &ind[j]);
 
-            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits_vrp(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &ind[i], &ind[j], vrp.depot);
+
+            Chromo_VRP<uint64_t> * offspring = (*ind[i].get_fitness() <= *ind[j].get_fitness()) ? (&ind[i]) : (&ind[j]);
+            offspring->compute_fitness( (void *) &vrp);
+            long double prev_fit = *offspring->get_fitness();
+            long double next_fit;
+            uint64_t t_recomb = 0;
+            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits_vrp(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &ind[i], &ind[j], vrp.depot, offspring, (void *) &vrp, &t_recomb);
 
             
+            offspring->compute_fitness( (void *) &vrp);
+            next_fit = *offspring->get_fitness();
+            if(t_recomb > 0 && prev_fit >= *offspring->get_fitness()) n_improved_local++;
+            if(t_recomb > 0 && prev_fit > *offspring->get_fitness()) strictly_improved++;
+                       
+
+            run_2opt_vrp(offspring, &aux_vrp, (void *) &vrp, n_trucks);
+
+            if(t_recomb > 0 && prev_fit > *offspring->get_fitness()) n_2opt_local++;
+
+
+            /*
+            std::cout << prev_fit << "\t" << *offspring->get_fitness();
+            if(t_recomb > 0 &&  prev_fit >= *offspring->get_fitness()) printf("\t*\n"); else printf("\n");
+            */
+            
+            #ifdef VERBOSE
+            // ONE PX 
+            std::cout << prev_fit << "\t" << *offspring->get_fitness();
+            if(t_recomb > 0 &&  prev_fit >= *offspring->get_fitness()) printf("\t*\n"); else printf("\n");
+            //std::cout << "ONE PX \n";
+            //ind[i].print_chromosome();
+            //ind[j].print_chromosome();
+            //std::cout << "the offspring \n";
+            //offspring->print_chromosome();
+            //getchar();
+            #endif
+
+
+            /*
 
             long double best_offspring;
             if(*ind[i].get_fitness() < *ind[j].get_fitness()){
@@ -375,9 +416,12 @@ int main(int argc, char **av) {
 
 
             
-            
+            */
         }
     }
+
+    std::cout << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local<< "\t" << strictly_improved << "\t"  << n_2opt_local << "\n";
+
     // best \t capacity \t n_indivs \t n_improved
     //std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\t" << feasible_local << "\n";
     /*
