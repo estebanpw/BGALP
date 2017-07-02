@@ -180,7 +180,8 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
         K _e2;
     };
     */
-    
+    bool sarcastic_jump = (node_shift % 2 == 0) ? (true) : (false);
+    bool jump = true;
     
     Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) sol_VRP;
     
@@ -202,20 +203,14 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
         alpha_sorted_table[i-1]._e1 = i;
         alpha_sorted_table[i-1]._e2 = alpha;
         #ifdef VERBOSE
-        std::cout << i << ": " << alpha << std::endl;
+        //std::cout << i << ": " << alpha << std::endl;
         #endif
     }
 
     // Sort by angle and then just generate the solution from a random point in order while capacity constrains hold
     qsort((void *) &alpha_sorted_table[0], vrp->n - 1, sizeof(DPair<uint64_t, long double>), &compare_alpha_petals);
 
-    #ifdef VERBOSE
-    std::cout << "Take shifted node: " << node_shift << std::endl;
-    for(uint64_t i=0; i<vrp->n-1; i++){
-        std::cout << i << ": " << alpha_sorted_table[i]._e1 << " -> " << alpha_sorted_table[i]._e2 << std::endl;
-    }
-    #endif
-
+    
     /*
     struct Sol_VRP_matrix{
         CPair<long double> * points;
@@ -233,24 +228,68 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     uint64_t i_in_chromo = 0;
     long double current_cap = 0;
     uint64_t n_trucks = 1;
+    uint64_t times_jumped = 1;
+    uint64_t initial = node_shift;
+    uint64_t last_added;
     
     while(allele_tracker < vrp->n - 1){
         
         if(current_cap + vrp->demands[alpha_sorted_table[take_shifted_node]._e1] > vrp->capacity){
             #ifdef VERBOSE
-            std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
+            //std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
             #endif
             c[i_in_chromo] = vrp->depot;
             n_trucks++;
             current_cap = 0;
         }else{
+
             current_cap += vrp->demands[alpha_sorted_table[take_shifted_node]._e1];
             c[i_in_chromo] = alpha_sorted_table[take_shifted_node]._e1;
-            take_shifted_node = (take_shifted_node + 1) % (vrp->n - 1);
+            last_added = take_shifted_node;
+            //std::cout << ", " << take_shifted_node;
+            
+            if(sarcastic_jump){
+                if(jump){
+                    take_shifted_node = (take_shifted_node + 2) % (vrp->n - 1);
+                    times_jumped++;
+                    
+                    
+                    if(initial == take_shifted_node){
+                        if(take_shifted_node == 0) take_shifted_node = vrp->n - 2; else take_shifted_node = (take_shifted_node - 1) % (vrp->n - 1);
+                    }
+                    
+                    
+                }else{
+                    if(take_shifted_node == 0) take_shifted_node = vrp->n - 2; else take_shifted_node = (take_shifted_node - 1) % (vrp->n - 1);
+                    jump = true;
+                    times_jumped = 0;
+                }            
+                
+            }else{
+                take_shifted_node = (take_shifted_node + 1) % (vrp->n - 1);
+            }
+
+            
+
+            
+            
+            
+            if(times_jumped == 2) jump = false;
             allele_tracker++;
+            
         }
         i_in_chromo++;
     }
+    /*
+    if(last_added != take_shifted_node){
+        // Have to add last
+        
+        current_cap += vrp->demands[alpha_sorted_table[take_shifted_node]._e1];
+        c[i_in_chromo] = alpha_sorted_table[take_shifted_node]._e1;
+        
+    } 
+    */
+    
     
 }
 

@@ -126,7 +126,7 @@ void reading_function_VRP(FILE * input, void * type_structure){
         if(node_coord_section && 3 == sscanf(buffer, "%lu %Le %Le", &id, &x, &y)){
             total++;
             #ifdef VERBOSE
-            fprintf(stdout, "%lu, %.3Le %.3Le\n", id, x, y);
+            //fprintf(stdout, "%lu, %.3Le %.3Le\n", id, x, y);
             #endif
         }
         if(strncmp(buffer, "NODE_COORD_SECTION", 18) == 0) node_coord_section = true;

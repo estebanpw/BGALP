@@ -79,7 +79,7 @@ int main(int argc, char **av) {
     uint64_t n_alleles_vrp = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
     uint64_t n_alleles = tsp.n;
     long double best_fitness = DBL_MAX;
-    uint64_t n_improved_local = 0;
+    uint64_t n_improved_local = 0, feasible_local = 0;
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
@@ -104,12 +104,14 @@ int main(int argc, char **av) {
         ind[i].compute_fitness((void *) &vrp);
         #ifdef VERBOSE
         ind[i].print_chromosome();
+        //ind[i].verify_chromosome(" at init!!");
         #endif
         run_2opt_vrp(&ind[i], &aux_vrp, (void *) &vrp, n_trucks);
         #ifdef VERBOSE
         std::cout << "2-OPT improved ";
         ind[i].print_chromosome();
         #endif
+        //getchar();
     }
         
 
@@ -154,8 +156,8 @@ int main(int argc, char **av) {
 
     // For all possible combinations 
     
-    //std::cout << "N\tPart(s)\tP1\tP2\tO\n";
-
+    
+    //std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\t" << feasible_local << "\n";
     uint64_t recombinations = 0;
     unsigned char * chosen_entries = (unsigned char *) std::malloc(2*n_alleles*sizeof(unsigned char));
     long double * scores_A = (long double *) std::malloc(n_alleles * sizeof(long double));
@@ -345,16 +347,15 @@ int main(int argc, char **av) {
             
             
             if(feas_index > 0){
-                //std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index;
+                std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index << "\t" << n_parts;
+                feasible_local++;
                 if(best_offspring < best_fitness) best_fitness = best_offspring;
-                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()){ n_improved_local++; /* std::cout << "\t*"; */} 
-                else { /*std::cout << "\tº";*/ }
+                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()){ n_improved_local++;  std::cout << "\t*"; } 
+                else { std::cout << "\tº"; }
 
 
-                // Re-check that they are local optima under 2-opt
-                //build_neighbours_matrix_and_DLB(n_alleles, (void *) &tsp);
-                //two_opt_DLB_NL(n_alleles, (void *) &tsp, &ind[i], n_neighbours);
-                //std::cout << "\n";
+                
+                std::cout << "\n";
             }
             
             //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
@@ -378,7 +379,7 @@ int main(int argc, char **av) {
         }
     }
     // best \t capacity \t n_indivs \t n_improved
-    std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\n";
+    //std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\t" << feasible_local << "\n";
     /*
 
     // Sort suboptimal tours 
