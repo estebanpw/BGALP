@@ -82,7 +82,9 @@ public:
     void verify_chromosome(char * step);
     void add_lookup();
     void set_lookup(T v, uint64_t p){ this->lookup[v] = p; }
+    void copy(Chromo_VRP<T> * c);
     uint64_t get_lookup(T v){ return this->lookup[v]; }
+    void print_vrp_chromosome(void * sol_vrp);
 
 };
 

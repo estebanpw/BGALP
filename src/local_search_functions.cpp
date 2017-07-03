@@ -583,3 +583,60 @@ struct optimal_path{
     
 }
 
+
+void local_swap_search(Chromo_VRP<uint64_t> * A, uint64_t n_nodes, std::default_random_engine * g, std::uniform_real_distribution<double> * u_r, void * sol_vrp){
+
+
+
+    Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) sol_vrp;
+    uint64_t weight_sum = vrp->demands[*A->get_allele(0)];
+    
+
+    //A->print_vrp_chromosome(vrp);
+
+    for(uint64_t i=1; i<n_nodes; i++){
+        //std::cout << "Computing from " << thvoid Chromo_VRP<T>::verify_chromosome(char * step)is->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
+        //capacity_sum += vrp->demands[this->chromosome[i]];
+        if(*A->get_allele(i) != 0){
+            weight_sum += vrp->demands[*A->get_allele(i)];
+        }else{
+            //std::cout<< "weight sum " << weight_sum << "\n";
+            if(i+1 < n_nodes &&weight_sum > (uint64_t)vrp->capacity){
+                // pasar uno al siguiente
+                //std::cout<<"(L)swapping " << *A->get_allele(i-1) << " with " << *A->get_allele(i) << "\n";
+                uint64_t aux = *A->get_allele(i - 1);
+                A->set_allele(i-1, A->get_allele(i));
+                A->set_allele(i, &aux); 
+
+            }else{
+                // coger uno del siguiente
+                //std::cout << "next weight is " << vrp->demands[*A->get_allele(i + 1)] << "\n";
+                if(i+1 < n_nodes && weight_sum + vrp->demands[*A->get_allele(i + 1)] < (uint64_t)vrp->capacity){
+                    //std::cout<<"(R)swapping " << *A->get_allele(i) << " with " << *A->get_allele(i + 1) << "\n";
+                    uint64_t aux = *A->get_allele(i + 1);
+                    A->set_allele(i+1, A->get_allele(i));
+                    A->set_allele(i, &aux); 
+                }
+                
+
+            }
+            
+            weight_sum = 0;
+        }
+        
+    }
+
+    //printf("AFTER\n");
+    //A->print_vrp_chromosome(vrp);
+    //getchar();
+}
+
+
+
+
+
+
+
+
+
+

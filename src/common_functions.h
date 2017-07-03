@@ -51,5 +51,5 @@ template <class T>
 void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<T> ** e_table, Edge_T<T> ** e_table_sorted);
 
 template <class T>
-void generate_petals_from_points(T * c, void * sol_VRP, uint64_t nodes_shift);
+void generate_petals_from_points(T * c, void * sol_VRP, uint64_t nodes_shift, uint64_t n_trucks);
 

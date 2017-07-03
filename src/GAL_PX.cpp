@@ -62,7 +62,7 @@ int main(int argc, char **av) {
     vrp.capacity = 0;
     init_args(argc, av, tsp_lib, &n_itera, &n_individuals, &part, &mix_every, &n_trucks, &random_sols, &vrp.capacity, &node_shift);
     long double temp_capacity = vrp.capacity;
-    mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
+    //mix_every = (n_itera/mix_every != 0) ? (n_itera/mix_every) : (100);
 
     // Readstream to load data 
     Readstream * rs = new Readstream(tsp_lib, &reading_function_VRP, (void *) &vrp);
@@ -78,8 +78,8 @@ int main(int argc, char **av) {
     // Number of alleles per individual
     uint64_t n_alleles_vrp = tsp.n + n_trucks - 1; // Considering *depot -> path -> depot -> path -> depot -> path -> *depot
     uint64_t n_alleles = tsp.n;
-    long double best_fitness = DBL_MAX;
-    uint64_t n_improved_local = 0, feasible_local = 0, n_2opt_local = 0, strictly_improved = 0;
+    long double best_fitness = DBL_MAX, average_fitness = DBL_MAX;
+    uint64_t n_improved_local = 0, n_2opt_local = 0, strictly_improved = 0;
     
     // A generic position (0,0,0) for the chromosomes implies no geometry
     Position p = Position();
@@ -87,13 +87,18 @@ int main(int argc, char **av) {
 
     
     // Random numbers for the manager
-    std::default_random_engine generator = std::default_random_engine(time(NULL));
-    std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles-1);
+    uint64_t random_seed;
+    std::default_random_engine generator = std::default_random_engine((uint64_t) &random_seed);
+    std::uniform_int_distribution<uint64_t> u_d = std::uniform_int_distribution<uint64_t>(0, n_alleles_vrp-1);
+    std::uniform_int_distribution<uint64_t> u_d_i = std::uniform_int_distribution<uint64_t>(0, n_individuals-1);
+    std::uniform_real_distribution<double> u_r = std::uniform_real_distribution<double>(0, 1);
 
     // Allocate chromosomes
     
     Chromo_VRP<uint64_t> * ind = (Chromo_VRP<uint64_t> *) std::malloc(n_individuals*sizeof(Chromo_VRP<uint64_t>));
     Chromo_VRP<uint64_t> aux_vrp(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, 0);
+    Chromo_VRP<uint64_t> aux_vrp_replacementA(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, 0);
+    Chromo_VRP<uint64_t> aux_vrp_replacementB(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, 0);
     if(node_shift == 0) node_shift = max((uint64_t)1, n_alleles/n_individuals);
     uint64_t curr_shift = 0;
     if(ind == NULL) throw "Could not allocate individuals";
@@ -102,6 +107,9 @@ int main(int argc, char **av) {
         new (&ind[i]) Chromo_VRP<uint64_t>(n_alleles_vrp, n_trucks, vrp.capacity, vrp.depot, p, PETALS, &generator, &u_d, (void *) &vrp, curr_shift);
         curr_shift = (curr_shift + node_shift) % (tsp.n - 1);
         ind[i].compute_fitness((void *) &vrp);
+
+        local_swap_search(&ind[i], n_alleles_vrp, &generator, &u_r, (void *) &vrp);
+
         #ifdef VERBOSE
         ind[i].print_chromosome();
         //ind[i].verify_chromosome(" at init!!");
@@ -122,9 +130,6 @@ int main(int argc, char **av) {
 
     // Get k random solutions
     
-    uint64_t n_combs = (random_sols*(random_sols-1))/2;
-    uint64_t n_neighbours = 20;
-
     // Allocate structure to hold best optimal paths generated in TSP
     
     // Pthreads 
@@ -158,16 +163,87 @@ int main(int argc, char **av) {
     
     
     //std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\t" << feasible_local << "\n";
-    uint64_t recombinations = 0;
+    
     unsigned char * chosen_entries = (unsigned char *) std::malloc(2*n_alleles*sizeof(unsigned char));
     long double * scores_A = (long double *) std::malloc(n_alleles * sizeof(long double));
     long double * scores_B = (long double *) std::malloc(n_alleles * sizeof(long double));
     if(chosen_entries == 0x0 || scores_A == 0x0 || scores_B == 0x0) throw "Could not allocate scores for A and B subtours";
 
+    Chromo_VRP<uint64_t> * p1, * p2;
+    Chromo_VRP<uint64_t> * best = &ind[0];
+    Chromo_VRP<uint64_t> * worst = &ind[0];
+    best_fitness = *ind[0].get_fitness();
+    average_fitness = 0;
     
-    for(uint64_t i=0;i<random_sols;i++){
-        for(uint64_t j=i+1;j<random_sols;j++){
+    uint64_t curr_pool = 0;
+    uint64_t indiv_per_pool = n_individuals / part;
+    double elitism_policy = 0.2;
+    uint64_t local_optima_when_stagnant = 0;
     
+    for(uint64_t i=0;i<n_itera;i++){
+
+        // next population
+        curr_pool = (curr_pool + 1) % part;
+
+
+        // Get worst
+        for(uint64_t t=indiv_per_pool*curr_pool;t<indiv_per_pool*(curr_pool+1);t++){
+            if(*worst->get_fitness() < *ind[t].get_fitness()){
+                worst = &ind[t];
+            }
+            average_fitness += *ind[t].get_fitness();
+            if(best_fitness > *ind[t].get_fitness()){
+                best_fitness = *ind[t].get_fitness();
+                best = &ind[t];
+            }
+        }
+        average_fitness /= (long double) indiv_per_pool;
+
+        
+        
+        // Select tournament
+
+        if(i % mix_every == 0){
+            p1 = &ind[u_d_i(generator)];
+            p2 = &ind[u_d_i(generator)];
+            while(p1 == p2) p2 = &ind[u_d_i(generator)];
+        }else{
+            p1 = &ind[(uint64_t) (indiv_per_pool*curr_pool + (indiv_per_pool * u_r(generator)))];
+            p2 = &ind[(uint64_t) (indiv_per_pool*curr_pool + (indiv_per_pool * u_r(generator)))];
+            while(p1 == p2) p2 = &ind[(uint64_t) (indiv_per_pool*curr_pool + (indiv_per_pool * u_r(generator)))];
+        }
+
+        // Modify best policy
+        if(u_r(generator) < elitism_policy){
+            p1 = best;
+            p2 = &ind[u_d_i(generator)];
+            while(p1 == p2) p2 = &ind[u_d_i(generator)];
+        }
+
+        
+
+        aux_vrp_replacementA.copy(p1); 
+        aux_vrp_replacementB.copy(p2); 
+    
+        simple_mutation(&aux_vrp_replacementA, n_alleles_vrp, &generator, &u_r); // Mutate
+
+        //local_swap_search(&aux_vrp_replacementA, n_alleles_vrp, &generator, &u_r, (void *) &vrp);
+        //local_swap_search(&aux_vrp_replacementB, n_alleles_vrp, &generator, &u_r, (void *) &vrp);
+
+        aux_vrp_replacementA.compute_fitness((void *) &vrp);
+        aux_vrp_replacementB.compute_fitness((void *) &vrp);
+    
+        if(i > n_itera*0.99 && elitism_policy != 0){
+            elitism_policy = 0;
+            std::cout<<"#ELITISM OUT\n";
+        }
+            
+
+        // Recombination part
+        Chromo_VRP<uint64_t> * offspring;
+        if(i > n_itera*0.99 || u_r(generator) < 0.0005){
+            
+
             // Restart memory pool, FIFO queue and Edge table
             mp->full_reset();
             while(!FIFO_queue->empty()) FIFO_queue->pop();
@@ -177,11 +253,11 @@ int main(int argc, char **av) {
             memset(&scores_B[0], (long double) 0, n_alleles);
 
             // Fill edge table for two random solutions
-            ind[i].add_lookup();
-            ind[j].add_lookup();
+            aux_vrp_replacementA.add_lookup();
+            aux_vrp_replacementB.add_lookup();
 
-            fill_edge_table_vrp(&ind[i], e_table, mp, CIRCUIT_A, vrp.depot);
-            fill_edge_table_vrp(&ind[j], e_table, mp, CIRCUIT_B, vrp.depot);
+            fill_edge_table_vrp(&aux_vrp_replacementA, e_table, mp, CIRCUIT_A, vrp.depot);
+            fill_edge_table_vrp(&aux_vrp_replacementB, e_table, mp, CIRCUIT_B, vrp.depot);
             
             
             // Calculate degree
@@ -258,223 +334,62 @@ int main(int argc, char **av) {
 
             mark_entries_and_exists_ghosted_vrp(n_alleles, e_table, entries_A, entries_B, exits_A, exits_B, vrp.depot);
 
-            
-
-            #ifdef VERBOSE
-            std::cout << "================================================================" << std::endl;
-            std::cout << "Combining " << std::endl;
-            ind[i].print_chromosome();
-            std::cout << " with: " << std::endl;
-            ind[j].print_chromosome();
-            #endif
 
             
-
-            // Verify that all entries conduct to the same exit 
-            //Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &best_paths, &ind[i], &ind[j]);
-
-
-            Chromo_VRP<uint64_t> * offspring = (*ind[i].get_fitness() <= *ind[j].get_fitness()) ? (&ind[i]) : (&ind[j]);
+            offspring = (*aux_vrp_replacementA.get_fitness() <= *aux_vrp_replacementB.get_fitness()) ? (&aux_vrp_replacementA) : (&aux_vrp_replacementB);
             offspring->compute_fitness( (void *) &vrp);
             long double prev_fit = *offspring->get_fitness();
             long double next_fit;
             uint64_t t_recomb = 0;
-            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits_vrp(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &ind[i], &ind[j], vrp.depot, offspring, (void *) &vrp, &t_recomb);
+            Feasible<uint64_t> feasibility_partitioning = verify_entries_and_exits_vrp(n_parts, entries_A, entries_B, exits_A, exits_B, mp, e_table, (void *) &tsp, n_alleles, &aux_vrp_replacementA, &aux_vrp_replacementB, vrp.depot, offspring, (void *) &vrp, &t_recomb);
 
-            
+        
             offspring->compute_fitness( (void *) &vrp);
             next_fit = *offspring->get_fitness();
-            if(t_recomb > 0 && prev_fit >= *offspring->get_fitness()) n_improved_local++;
+            if(t_recomb > 0 && elitism_policy == 0) n_improved_local++;
             if(t_recomb > 0 && prev_fit > *offspring->get_fitness()) strictly_improved++;
-                       
-
+            if(elitism_policy == 0 && t_recomb > 0 && prev_fit > *offspring->get_fitness()) local_optima_when_stagnant++;
             run_2opt_vrp(offspring, &aux_vrp, (void *) &vrp, n_trucks);
 
-            if(t_recomb > 0 && prev_fit > *offspring->get_fitness()) n_2opt_local++;
-
-
-            /*
-            std::cout << prev_fit << "\t" << *offspring->get_fitness();
-            if(t_recomb > 0 &&  prev_fit >= *offspring->get_fitness()) printf("\t*\n"); else printf("\n");
-            */
-            
-            #ifdef VERBOSE
-            // ONE PX 
-            std::cout << prev_fit << "\t" << *offspring->get_fitness();
-            if(t_recomb > 0 &&  prev_fit >= *offspring->get_fitness()) printf("\t*\n"); else printf("\n");
-            //std::cout << "ONE PX \n";
-            //ind[i].print_chromosome();
-            //ind[j].print_chromosome();
-            //std::cout << "the offspring \n";
-            //offspring->print_chromosome();
-            //getchar();
-            #endif
-
-
-            /*
-
-            long double best_offspring;
-            if(*ind[i].get_fitness() < *ind[j].get_fitness()){
-                best_offspring = *ind[i].get_fitness();
-            }else{
-                best_offspring = *ind[j].get_fitness();
-            }
-            
-            #ifdef VERBOSE
-            std::cout << "Summary of partitioning\n";
-            #endif
-
-            Edge_T<uint64_t> * first_start = NULL;
-            uint64_t feas_index = 0;
-            long double t_score_A = *ind[i].get_fitness(), t_score_B = *ind[j].get_fitness();
-            for(uint64_t w=0;w<n_parts;w++){
-                if(feasibility_partitioning.feasible._e1[w] != 0x0){
-                    long double score_part_A = 0.0;
-                    long double score_part_B = 0.0;
-                    #ifdef VERBOSE
-                    std::cout << "Partition " << w << " has " << feasibility_partitioning.n_entries[w] << " entries and exits: \n";
-                    #endif
-                    for(uint64_t k=0;k<feasibility_partitioning.n_entries[w];k++){
-
-                        if(first_start == NULL) first_start = feasibility_partitioning.feasible._e1[w][k].entry;
-                        
-
-                        #ifdef VERBOSE
-                        std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        #endif
-                        //score_part_A += evaluate_partition_subtours_multiple(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
-                        //score_part_A = (long double) evaluate_partition_subtours_multiple_ghosted(feasibility_partitioning.feasible._e1[w][k].entry, feasibility_partitioning.feasible._e1[w][k].exit, feasibility_partitioning.feasible._e1[w][k].reverse, &ind[i], (void *) &tsp, e_table);
-                        score_part_A = feasibility_partitioning.feasible._e1[w][k].score;
-
-                        //best_paths.nodes[i]
-                        
-                        #ifdef VERBOSE
-                        std::cout << "(-> "<< feasibility_partitioning.feasible._e1[w][k].entry->node << " -> " << feasibility_partitioning.feasible._e1[w][k].exit->node << " )\n";
-                        #endif
-
-                        score_part_B = feasibility_partitioning.feasible._e2[w][k].score;
-
-                        #ifdef VERBOSE
-                        std::cout << "Scores: " << score_part_A << " :: " << score_part_B << "\n";
-                        #endif
-
-                        if(score_part_A <= score_part_B){
-                            chosen_entries[feasibility_partitioning.feasible._e1[w][k].entry->node] = CIRCUIT_A;
-                        }else{
-                            chosen_entries[feasibility_partitioning.feasible._e2[w][k].entry->node] = CIRCUIT_B;
-                        }
-                        
-                        scores_A[feas_index] = score_part_A;
-                        scores_B[feas_index] = score_part_B;
-                        feas_index++;
-                        
-
-                        t_score_A -= score_part_A; // To calculate the residual graph
-                        t_score_B -= score_part_B;
-                    }
-
-                }
-            }
-
-            
-            if(t_score_A <= t_score_B){
-                best_offspring = t_score_A;
-            }else{
-                best_offspring = t_score_B;
-            }    
-            for(uint64_t w=0; w<feas_index; w++){
-                if(scores_A[w] <= scores_B[w]) best_offspring += scores_A[w]; else best_offspring += scores_B[w];
-            }
-            
-            
-            if(feas_index > 0){
-                std::cout << *ind[i].get_fitness() << "\t" << *ind[j].get_fitness() << "\t" << best_offspring << "\t" << feas_index << "\t" << n_parts;
-                feasible_local++;
-                if(best_offspring < best_fitness) best_fitness = best_offspring;
-                if(best_offspring < *ind[i].get_fitness() && best_offspring < *ind[j].get_fitness()){ n_improved_local++;  std::cout << "\t*"; } 
-                else { std::cout << "\tº"; }
-
-
-                
-                std::cout << "\n";
-            }
-            
-            //std::cout << "Fitnesses:\n(A): " << *ind[i].get_fitness() << "\n(B): " << *ind[j].get_fitness() << "\n(O): " << best_offspring << std::endl;
-            
-            #ifdef VERBOSE
-            getchar();
-            #endif
-            
-            continue;
-            
-
-            
-
-            
-            // To hold pairs of surrogates
-            //Quartet<Edge_T<uint64_t>> current_px;
-
-
-            
-            */
+        }else{
+            offspring = (*aux_vrp_replacementA.get_fitness() <= *aux_vrp_replacementB.get_fitness()) ? (&aux_vrp_replacementA) : (&aux_vrp_replacementB);
+            run_2opt_vrp(offspring, &aux_vrp, (void *) &vrp, n_trucks);
         }
+        
+        
+
+        
+
+        
+        /*
+        if(t_recomb > 0 && prev_fit > *offspring->get_fitness()) n_2opt_local++;
+        */
+
+        // Always replace worst
+        if(*offspring->get_fitness() < *worst->get_fitness() || elitism_policy == 0){
+            worst->copy(offspring);
+            worst->compute_fitness((void *) &vrp);
+
+        }
+        
+
+
+        if(i % 100 == 0){
+            std::cout << "@" << i << " B: " << best_fitness << " AVG: " << average_fitness << std::endl;
+            if(i % 1000 == 0) best->print_vrp_chromosome((void *) &vrp);
+            //getchar();
+        }
+
+            
     }
+
+    std::cout<< "@N local optima when stagnant "<< local_optima_when_stagnant << "\n";
+
+    best->print_vrp_chromosome((void *) &vrp);
 
     std::cout << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local<< "\t" << strictly_improved << "\t"  << n_2opt_local << "\n";
 
-    // best \t capacity \t n_indivs \t n_improved
-    //std::cout << best_fitness << "\t" << vrp.capacity << "\t" << node_shift << "\t" << n_improved_local << "\t" << feasible_local << "\n";
-    /*
-
-    // Sort suboptimal tours 
-    for(uint64_t i=0; i<n_alleles; i++){
-        qsort(&best_paths.nodes[i][0], best_paths.indexes[i], sizeof(swath<uint64_t>), compare_swaths);
-    }
-    // Print suboptimal tours
-    for(uint64_t i=0; i<n_alleles; i++){
-        std::cout << "At allele " << i << "---------" << std::endl;
-        for(uint64_t j=0; j<best_paths.indexes[i]; j++){
-            std::cout << "@" << best_paths.nodes[i][j].pos << " -> " << *best_paths.nodes[i][j].origin->get_allele(best_paths.nodes[i][j].pos) << " has " << best_paths.nodes[i][j].score << "::veri:" << best_paths.nodes[i][j].verifier << std::endl << "\t->";
-            for(uint64_t k=0; k<best_paths.nodes[i][j].length; k++){
-                std::cout << *best_paths.nodes[i][j].origin->get_allele(best_paths.nodes[i][j].pos+k) << ", ";
-            }
-            std::cout << "\n";
-        }
-    }
-
-    // Generate vrp with suboptimal paths inside
-    ind_vrp[0].compute_fitness((void *) &vrp);
-    ind_vrp[0].print_chromosome();
-    generate_petals_from_points_and_suboptimal( ind_vrp[0].get_chromosome(), (void *) &vrp, &best_paths);
-    ind_vrp[0].compute_fitness((void *) &vrp);
-    ind_vrp[0].print_chromosome();
-    ind_vrp[0].verify_chromosome(" after petals ");
-    //generate_petals_from_points(ind_vrp[0].get_chromosome(), (void *) &vrp);
-    run_2opt_vrp(&ind_vrp[0], &ind_vrp[1], (void *) &vrp, n_trucks);
-    ind_vrp[0].compute_fitness((void *) &vrp);
-    ind_vrp[0].print_chromosome();
-
-
-
     
-    
-    for(uint64_t i=0;i<tsp.n;i++){
-        std::free(tsp.dist[i]);
-    }
-    std::free(tsp.dist);
-
-    delete mp;
-    delete rs;
-    //delete offspring_1;
-    //delete offspring_2;
-    std::free(ind);
-    std::free(population);
-    std::free(e_table);
-    
-    std::free(scores_A);
-    std::free(scores_B);
-    std::free(chosen_entries);
-    */
     
 
     return 0;

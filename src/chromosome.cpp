@@ -172,7 +172,7 @@ Chromo_VRP<T>::Chromo_VRP(uint64_t alleles, uint64_t n_trucks, long double capac
         random_shuffle_templated(this->length, this->chromosome, seed, g, u_d); // shuffle them 
     }
     if(init_type == PETALS){
-        generate_petals_from_points(this->chromosome, sol_VRP, node_shift);
+        generate_petals_from_points(this->chromosome, sol_VRP, node_shift, n_trucks);
     }
     
     
@@ -205,6 +205,8 @@ template <class T>
 void Chromo_VRP<T>::compute_fitness(void * solution_info){
     Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) solution_info;
     long double path_sum = 0;
+    long double sub_path = 0;
+    
     //long double capacity_sum = 0;
 
     /*
@@ -215,12 +217,25 @@ struct Sol_VRP_matrix{
     uint64_t depot; // Node depot
 };
     */
+    uint64_t weight_sum = vrp->demands[this->chromosome[0]];
 
     for(uint64_t i=1; i<this->length; i++){
         //std::cout << "Computing from " << thvoid Chromo_VRP<T>::verify_chromosome(char * step)is->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
         path_sum +=  vrp->dist[this->chromosome[i-1]][this->chromosome[i]]; //Distance between node i and node j
+        
         //capacity_sum += vrp->demands[this->chromosome[i]];
+        if(this->chromosome[i] != this->depot){
+            weight_sum += vrp->demands[this->chromosome[i]];
+            sub_path += vrp->demands[this->chromosome[i]];
+        }else{
+            if(weight_sum > (uint64_t)vrp->capacity) path_sum += (2*sub_path);
+            weight_sum = 0;
+
+            sub_path = 0;
+        }
+        
     }
+    if(weight_sum > (uint64_t)vrp->capacity) path_sum += (2*sub_path);
     //std::cout << "Computing from " << this->chromosome[0] << " to " << this->chromosome[this->length-1] << " adds " << tsp->dist[this->chromosome[0]][this->chromosome[this->length-1]] << std::endl;
     path_sum += vrp->dist[this->depot][this->chromosome[0]]; //First vehicle depot 
     //capacity_sum += vrp->demands[this->chromosome[0]]; // First customer
@@ -228,6 +243,17 @@ struct Sol_VRP_matrix{
     //std::cout << "Sum of capacity : " << capacity_sum << " and distance travelled " << path_sum << std::endl;
     this->fitness = path_sum;    
 }
+
+template <class T>
+void Chromo_VRP<T>::copy(Chromo_VRP<T> * c){
+    //std::cout << "copying to " << this->length << std::endl;
+    for(uint64_t i=0;i<this->length;i++){
+        this->set_allele(i, c->get_allele(i));
+    }
+    this->add_lookup();
+    
+}
+
 
 template <class T>
 void Chromo_VRP<T>::verify_chromosome(char * step){
@@ -246,6 +272,37 @@ void Chromo_VRP<T>::verify_chromosome(char * step){
             throw "Aborting";
         }
     }
+}
+
+template <class T>
+void Chromo_VRP<T>::print_vrp_chromosome(void * sol_vrp){
+
+    std::cout << "\t@(" << this->position.x <<  ", " << this->position.y << ", " << this->position.z << ") L: " << this->length << std::endl;
+    std::cout << "\tF: " << this->fitness << " at " << this << std::endl;
+
+    Sol_VRP_matrix * vrp = (Sol_VRP_matrix *) sol_vrp;
+    uint64_t weight_sum = vrp->demands[this->chromosome[0]];
+    
+
+    for(uint64_t i=1; i<this->length; i++){
+        //std::cout << "Computing from " << thvoid Chromo_VRP<T>::verify_chromosome(char * step)is->chromosome[i-1] << " to " << this->chromosome[i] << " adds " << tsp->dist[this->chromosome[i-1]][this->chromosome[i]] << std::endl;
+        //capacity_sum += vrp->demands[this->chromosome[i]];
+        if(this->chromosome[i] != this->depot){
+            weight_sum += vrp->demands[this->chromosome[i]];
+        }else{
+            if(weight_sum > (uint64_t)vrp->capacity) std::cout << "*" << weight_sum << "--";
+            else std::cout << weight_sum << "--";
+            weight_sum = 0;
+        }
+        
+    }
+
+    std::cout << "\n";
+
+    for(uint64_t i=0;i<this->length;i++){
+        std::cout << (uint64_t) this->chromosome[i] << ", ";
+    }
+    std::cout << std::endl;
 }
 
 

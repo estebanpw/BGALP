@@ -170,7 +170,7 @@ void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<T> ** e_table, Edge_T<T> *
 }
 
 template <class T>
-void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
+void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift, uint64_t n_trucks){
     /*
     
 
@@ -227,25 +227,25 @@ void generate_petals_from_points(T * c, void * sol_VRP, uint64_t node_shift){
     uint64_t take_shifted_node = node_shift;
     uint64_t i_in_chromo = 0;
     long double current_cap = 0;
-    uint64_t n_trucks = 1;
+    uint64_t n_trucks_used = 1;
     uint64_t times_jumped = 1;
     uint64_t initial = node_shift;
-    uint64_t last_added;
+    
     
     while(allele_tracker < vrp->n - 1){
         
-        if(current_cap + vrp->demands[alpha_sorted_table[take_shifted_node]._e1] > vrp->capacity){
+        if(current_cap + vrp->demands[alpha_sorted_table[take_shifted_node]._e1] > vrp->capacity && n_trucks_used < n_trucks){
             #ifdef VERBOSE
             //std::cout << "Reached cap: " << current_cap << " vs total " << vrp->capacity << std::endl;
             #endif
             c[i_in_chromo] = vrp->depot;
-            n_trucks++;
+            n_trucks_used++;
             current_cap = 0;
         }else{
 
             current_cap += vrp->demands[alpha_sorted_table[take_shifted_node]._e1];
             c[i_in_chromo] = alpha_sorted_table[take_shifted_node]._e1;
-            last_added = take_shifted_node;
+            
             //std::cout << ", " << take_shifted_node;
             
             if(sarcastic_jump){
@@ -308,4 +308,4 @@ template bool find_in_vector(std::vector<uint64_t> * v, uint64_t key);
 template uint64_t get_number_of_partitions(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template uint64_t get_number_of_partitions_ghosted(uint64_t n_nodes, Edge_T<uint64_t> ** e_table);
 template void sort_edges_table_lookup(uint64_t n_nodes, Edge_T<uint64_t> ** e_table, Edge_T<uint64_t> ** e_table_sorted);
-template void generate_petals_from_points(uint64_t * c, void * sol_VRP, uint64_t node_shift);
+template void generate_petals_from_points(uint64_t * c, void * sol_VRP, uint64_t node_shift, uint64_t n_trucks);

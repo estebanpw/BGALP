@@ -21,3 +21,4 @@ bool improve_city_2_opt(Chromosome<uint64_t> * tour, uint64_t base_pos, void * s
 void two_opt_DLB_NL(uint64_t n_nodes, void * sol_tsp, Chromosome<uint64_t> * route, uint64_t n_neighbours);
 void * run_pthreads_two_opt(void * a);
 void generate_petals_from_points_and_suboptimal(uint64_t * c, void * sol_VRP, optimal_path<Chromo_TSP<uint64_t>> * best_paths);
+void local_swap_search(Chromo_VRP<uint64_t> * A, uint64_t n_nodes, std::default_random_engine * g, std::uniform_real_distribution<double> * u_r, void * sol_vrp);
